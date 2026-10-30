@@ -1,0 +1,651 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Air Assault Flashcards</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Barlow+Condensed:wght@400;600;700;900&family=Barlow:wght@400;500&display=swap');
+  :root {
+    --od-green: #1f4b63; --tan: #7fb8c9; --tan-light: #d6f0f5; --black: #05080a;
+    --dark: #0f1a1f; --darker: #0a1216; --accent: #22d3ee; --red: #c0392b;
+    --green: #2ecc71; --muted: #4f7080; --card-bg: #101c22; --border: #24343d;
+    color-scheme: dark;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--darker); color: var(--tan-light);
+    font-family: 'Barlow', sans-serif; min-height: 100vh;
+    background-image:
+      repeating-linear-gradient(0deg, transparent, transparent 40px, rgba(31,75,99,0.03) 40px, rgba(31,75,99,0.03) 41px),
+      repeating-linear-gradient(90deg, transparent, transparent 40px, rgba(31,75,99,0.03) 40px, rgba(31,75,99,0.03) 41px);
+  }
+  body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 110; background: var(--dark); }
+  .topbar { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 100; }
+  header {
+    background: var(--dark); border-bottom: 2px solid var(--od-green);
+    padding: 14px 18px; display: flex; align-items: center; gap: 14px;
+  }
+  .header-left { display: flex; flex-direction: column; flex: 1; min-width: 0; }
+
+  /* Hamburger */
+  .hamburger { background: transparent; border: 1px solid var(--border); width: 42px; height: 40px; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 5px; cursor: pointer; flex-shrink: 0; transition: border-color 0.15s; }
+  .hamburger:hover, .hamburger:focus-visible { border-color: var(--accent); }
+  .hamburger span { display: block; width: 20px; height: 2px; background: var(--accent); transition: transform 0.2s, opacity 0.2s; }
+  .hamburger.open span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+  .hamburger.open span:nth-child(2) { opacity: 0; }
+  .hamburger.open span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+
+  /* Slide-down nav drawer */
+  .nav-drawer { background: var(--dark); border-bottom: 1px solid var(--border); overflow: hidden; max-height: 0; transition: max-height 0.25s ease; }
+  .nav-drawer.open { max-height: 340px; border-bottom: 2px solid var(--od-green); }
+  .nav-inner { display: flex; flex-direction: column; padding: 6px 0; }
+  .nav-item { background: transparent; border: none; border-left: 3px solid transparent; color: var(--tan-light); text-align: left; padding: 12px 20px; cursor: pointer; font-family: 'Barlow Condensed', sans-serif; font-size: 17px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; transition: background 0.15s; }
+  .nav-item:hover { background: rgba(31,75,99,0.25); }
+  .nav-item.active { border-left-color: var(--accent); color: var(--accent); background: rgba(31,75,99,0.2); }
+  .nav-item .nav-sub { font-family: 'Barlow', sans-serif; font-size: 11px; font-weight: 400; letter-spacing: 0; text-transform: none; color: var(--muted); }
+  .nav-item.active .nav-sub { color: var(--tan); }
+  .current-view-tag { font-family: 'Share Tech Mono', monospace; font-size: 10px; color: var(--accent); letter-spacing: 2px; }
+  .unit-tag { font-family: 'Share Tech Mono', monospace; font-size: 10px; color: var(--muted); letter-spacing: 2px; text-transform: uppercase; }
+  h1 { font-family: 'Barlow Condensed', sans-serif; font-size: 22px; font-weight: 900; color: var(--accent); letter-spacing: 1px; text-transform: uppercase; }
+
+  .score-bar { display: flex; gap: 16px; padding: 8px 18px; background: var(--dark); border-bottom: 1px solid var(--border); font-family: 'Share Tech Mono', monospace; font-size: 12px; flex-wrap: wrap; align-items: center; }
+  .score-item { display: flex; align-items: center; gap: 6px; }
+  .score-dot { width: 8px; height: 8px; border-radius: 50%; }
+  .dot-correct { background: var(--green); } .dot-wrong { background: var(--red); } .dot-skip { background: var(--muted); }
+  .reset-btn { margin-left: auto; background: transparent; border: 1px solid var(--border); color: var(--muted); font-family: 'Share Tech Mono', monospace; font-size: 10px; padding: 3px 10px; cursor: pointer; letter-spacing: 1px; }
+  .reset-btn:hover { border-color: var(--red); color: var(--red); }
+
+  .main { max-width: 820px; margin: 0 auto; padding: 24px 16px; }
+
+  .topic-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 8px; margin-bottom: 24px; }
+  .topic-btn { background: var(--card-bg); border: 1px solid var(--border); color: var(--tan-light); font-family: 'Barlow Condensed', sans-serif; font-size: 13px; font-weight: 600; letter-spacing: 0.5px; padding: 10px 14px; cursor: pointer; text-align: left; transition: all 0.15s; position: relative; }
+  .topic-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .topic-btn.active { background: var(--od-green); border-color: var(--accent); color: var(--accent); }
+  .topic-btn .reg-tag { display: block; font-family: 'Share Tech Mono', monospace; font-size: 9px; color: var(--muted); margin-bottom: 2px; }
+  .topic-btn.active .reg-tag { color: var(--tan); }
+  .topic-btn .count-tag { font-family: 'Share Tech Mono', monospace; font-size: 9px; color: var(--muted); float: right; }
+
+  .station-group-label { font-family: 'Share Tech Mono', monospace; font-size: 11px; color: var(--accent); letter-spacing: 2px; text-transform: uppercase; margin: 18px 0 8px; border-left: 3px solid var(--od-green); padding-left: 10px; }
+
+  .card-container { margin-bottom: 16px; scroll-margin-top: 130px; }
+  .card { background: var(--card-bg); border: 1px solid var(--border); border-left: 4px solid var(--od-green); min-height: 220px; padding: 28px; position: relative; transition: border-color 0.2s; }
+  .card.revealed { border-left-color: var(--accent); }
+  .card.correct-card { border-left-color: var(--green); }
+  .card.wrong-card { border-left-color: var(--red); }
+  .card-topic { font-family: 'Share Tech Mono', monospace; font-size: 10px; color: var(--muted); letter-spacing: 2px; text-transform: uppercase; margin-bottom: 12px; }
+  .card-q { font-family: 'Barlow Condensed', sans-serif; font-size: 26px; font-weight: 700; line-height: 1.3; color: var(--tan-light); margin-bottom: 20px; }
+  .card-a { display: none; background: rgba(31,75,99,0.2); border: 1px solid var(--od-green); padding: 16px; font-size: 15px; line-height: 1.6; color: var(--tan); }
+  .card-a.show { display: block; }
+
+  .control-deck { position: sticky; bottom: 0; background: var(--darker); border-top: 1px solid var(--border); padding: 12px 0 calc(14px + env(safe-area-inset-bottom, 0px)); margin-top: 4px; z-index: 80; }
+  .deck-label { font-family: 'Share Tech Mono', monospace; font-size: 9px; color: var(--muted); letter-spacing: 2px; text-transform: uppercase; margin-bottom: 8px; }
+  .action-row { display: flex; gap: 10px; flex-wrap: wrap; }
+  .action-row + .action-row { margin-top: 10px; }
+  .btn { flex: 1; min-width: 100px; padding: 12px; border: none; font-family: 'Barlow Condensed', sans-serif; font-size: 15px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; cursor: pointer; transition: opacity 0.15s; }
+  .btn:hover { opacity: 0.85; }
+  .btn-correct { background: var(--green); color: var(--black); }
+  .btn-wrong { background: var(--red); color: white; }
+  .btn-skip { background: var(--muted); color: var(--dark); }
+  .btn-next { background: var(--accent); color: var(--black); }
+  .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .reveal-btn { flex: 2; min-width: 140px; background: transparent; border: 1px solid var(--od-green); color: var(--tan); }
+  .reveal-btn:hover:not(:disabled) { background: var(--od-green); color: var(--accent); opacity: 1; }
+  .btn-secondary { flex: 1; min-width: 90px; }
+
+  .section-label { font-family: 'Barlow Condensed', sans-serif; font-size: 13px; font-weight: 600; color: var(--muted); letter-spacing: 2px; text-transform: uppercase; margin-bottom: 10px; }
+  .progress-bar-wrap { background: var(--dark); height: 4px; margin-bottom: 20px; position: relative; }
+  .progress-bar-fill { height: 100%; background: var(--accent); transition: width 0.3s; }
+  .weak-topics { background: rgba(192,57,43,0.1); border: 1px solid rgba(192,57,43,0.3); padding: 14px 18px; margin-top: 16px; }
+  .weak-label { font-family: 'Share Tech Mono', monospace; font-size: 10px; color: var(--red); letter-spacing: 2px; margin-bottom: 8px; }
+  .weak-list { font-size: 13px; color: var(--tan); line-height: 1.8; }
+  .separator { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  .footer-credit { text-align: center; font-family: 'Share Tech Mono', monospace; font-size: 11px; color: var(--muted); letter-spacing: 1px; padding: 20px 16px calc(28px + env(safe-area-inset-bottom, 0px)); font-style: italic; }
+
+  /* Views */
+  .view { display: none; }
+  .view.active { display: block; }
+
+  /* Equipment Quick Notes */
+  .notes-tools { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 8px; }
+  .notes-search { flex: 1; min-width: 180px; background: var(--card-bg); border: 1px solid var(--border); color: var(--tan-light); font-family: 'Barlow', sans-serif; font-size: 15px; padding: 10px 12px; }
+  .notes-search::placeholder { color: var(--muted); }
+  .notes-search:focus { border-color: var(--accent); outline: none; }
+  .hide-toggle { background: transparent; border: 1px solid var(--od-green); color: var(--tan); font-family: 'Share Tech Mono', monospace; font-size: 11px; letter-spacing: 1px; padding: 11px 14px; cursor: pointer; }
+  .hide-toggle:hover, .hide-toggle[aria-pressed="true"] { color: var(--accent); border-color: var(--accent); }
+  .notes-legend { font-family: 'Share Tech Mono', monospace; font-size: 10px; color: var(--muted); letter-spacing: 1px; margin-bottom: 4px; line-height: 1.7; }
+  .notes-legend b { color: var(--tan); font-weight: 400; }
+  .notes-section-title { font-family: 'Barlow Condensed', sans-serif; font-size: 20px; font-weight: 900; color: var(--accent); letter-spacing: 1px; text-transform: uppercase; margin: 26px 0 4px; }
+  .notes-section-sub { font-size: 13px; color: var(--muted); margin-bottom: 4px; }
+  .eq-list { display: flex; flex-direction: column; gap: 6px; }
+  .eq-item { background: var(--card-bg); border: 1px solid var(--border); border-left: 4px solid var(--od-green); padding: 12px 14px; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 14px; }
+  .eq-name { font-family: 'Barlow Condensed', sans-serif; font-size: 18px; font-weight: 700; letter-spacing: 0.5px; color: var(--tan-light); min-width: 0; }
+  .eq-cap { font-family: 'Share Tech Mono', monospace; font-size: 14px; color: var(--accent); text-align: right; line-height: 1.5; font-variant-numeric: tabular-nums; }
+  .eq-line { grid-column: 1 / -1; font-size: 14px; line-height: 1.5; color: var(--tan); min-width: 0; }
+  .eq-line .lbl { font-family: 'Share Tech Mono', monospace; font-size: 9px; letter-spacing: 1.5px; color: var(--muted); text-transform: uppercase; margin-right: 6px; }
+  .key-note { grid-column: 1 / -1; font-size: 13px; line-height: 1.5; color: var(--tan-light); }
+  .key-note::before { content: "KEY"; font-family: 'Share Tech Mono', monospace; font-size: 9px; letter-spacing: 1.5px; color: var(--darker); background: var(--accent); padding: 1px 5px; margin-right: 7px; vertical-align: 1px; }
+  .flag-note { grid-column: 1 / -1; font-size: 13px; line-height: 1.5; color: var(--tan-light); background: rgba(192,57,43,0.1); border: 1px solid rgba(192,57,43,0.35); padding: 6px 10px; margin-top: 2px; }
+  .flag-note::before { content: "CHECK"; font-family: 'Share Tech Mono', monospace; font-size: 9px; letter-spacing: 1.5px; color: var(--red); margin-right: 7px; }
+  .strike { text-decoration: line-through; color: var(--muted); }
+
+  .load-stats { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1px; background: var(--border); border: 1px solid var(--border); margin: 6px 0 4px; }
+  .stat { background: var(--darker); padding: 7px 9px; min-width: 0; }
+  .stat-lbl { display: block; font-family: 'Share Tech Mono', monospace; font-size: 9px; letter-spacing: 1.5px; color: var(--muted); text-transform: uppercase; margin-bottom: 2px; }
+  .stat-val { font-family: 'Share Tech Mono', monospace; font-size: 13px; color: var(--accent); line-height: 1.45; font-variant-numeric: tabular-nums; }
+  .notes-empty { color: var(--muted); font-size: 14px; padding: 14px 0; }
+
+  /* Hide-numbers drill: values blur until tapped */
+  .hide-nums .num { filter: blur(6px); cursor: pointer; user-select: none; transition: filter 0.15s; }
+  .hide-nums .num.peek { filter: none; user-select: auto; }
+
+  @media (max-width: 560px) {
+    .load-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .eq-name { font-size: 17px; }
+    h1 { font-size: 18px; }
+    .card { padding: 20px; min-height: 180px; }
+    .card-q { font-size: 22px; }
+    .main { padding: 18px 12px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    * { transition: none !important; scroll-behavior: auto !important; }
+  }
+</style>
+</head>
+<body>
+<div class="topbar">
+<header>
+  <button class="hamburger" id="hamburger" aria-label="Open menu" aria-expanded="false" aria-controls="nav-drawer">
+    <span></span><span></span><span></span>
+  </button>
+  <div class="header-left">
+    <span class="unit-tag">The Sabalauski Air Assault School</span>
+    <h1 id="page-title">Air Assault Phase 1 — Flashcards</h1>
+    <span class="current-view-tag" id="current-view-tag">PHASE 1 · COMBAT ASSAULT</span>
+  </div>
+</header>
+
+<nav class="nav-drawer" id="nav-drawer">
+  <div class="nav-inner">
+    <button class="nav-item active" data-phase="p1">Phase 1 <span class="nav-sub" id="nav-sub-p1">Aircraft, MEDEVAC, safety, PZ/LZ, planning</span></button>
+    <button class="nav-item" data-phase="p2">Phase 2 <span class="nav-sub" id="nav-sub-p2">Sling load: hooks, slings, nets, loads</span></button>
+    <button class="nav-item" data-phase="notes">Equipment Quick Notes <span class="nav-sub">Capacities, rigging materials, link counts by load</span></button>
+  </div>
+</nav>
+
+<div class="score-bar" id="score-bar">
+  <span class="score-item"><span class="score-dot dot-correct"></span><span id="score-correct">0</span> CORRECT</span>
+  <span class="score-item"><span class="score-dot dot-wrong"></span><span id="score-wrong">0</span> WRONG</span>
+  <span class="score-item"><span class="score-dot dot-skip"></span><span id="score-skip">0</span> SKIPPED</span>
+  <span class="score-item" style="color: var(--accent); font-size:11px;" id="current-topic-tag">— SELECT TOPIC —</span>
+  <button class="reset-btn" id="reset-btn">RESET</button>
+</div>
+</div>
+
+<div class="main">
+ <div class="view active" id="view-cards">
+  <div class="section-label">Select Topic</div>
+  <div class="topic-grid" id="topic-grid"></div>
+  <hr class="separator">
+  <div class="progress-bar-wrap"><div class="progress-bar-fill" id="progress-bar" style="width:0%"></div></div>
+  <div class="card-container">
+    <div class="card" id="main-card">
+      <div class="card-topic" id="card-topic">— SELECT A TOPIC ABOVE —</div>
+      <div class="card-q" id="card-q">Choose a topic from the list above to begin.</div>
+      <div class="card-a" id="card-a"></div>
+    </div>
+  </div>
+  <div class="weak-topics" id="weak-section" style="display:none">
+    <div class="weak-label">▲ WEAK AREAS — NEEDS WORK</div>
+    <div class="weak-list" id="weak-list"></div>
+  </div>
+
+  <div class="control-deck">
+    <div class="deck-label" id="deck-label">Answer out loud, then reveal</div>
+    <div class="action-row" id="reveal-row">
+      <button class="btn reveal-btn" id="reveal-btn" onclick="revealAnswer()" disabled>REVEAL ANSWER</button>
+      <button class="btn btn-skip btn-secondary" onclick="skipCard()" id="skip-btn" disabled>SKIP</button>
+    </div>
+    <div class="action-row" id="judge-row" style="display:none">
+      <button class="btn btn-correct" onclick="markCard('correct')">✓ GOT IT</button>
+      <button class="btn btn-wrong" onclick="markCard('wrong')">✗ MISSED</button>
+    </div>
+    <div class="action-row" id="next-row" style="display:none">
+      <button class="btn btn-next" onclick="nextCard()" id="next-btn">NEXT →</button>
+    </div>
+  </div>
+ </div>
+
+ <div class="view" id="view-notes">
+  <div class="notes-tools">
+    <input class="notes-search" id="notes-search" type="search" placeholder="Search equipment or loads, e.g. clevis, M1102" aria-label="Search the quick notes">
+    <button class="hide-toggle" id="hide-toggle" aria-pressed="false">HIDE NUMBERS</button>
+  </div>
+  <div class="notes-legend"><b>LC</b> link count · <b>BA</b> breakaways · <b>CW</b> cotton webbing · <b>PS</b> pressure-sensitive · <b>F/R</b> front/rear · <b>L/CL</b> left/center</div>
+  <div class="notes-legend">Hide Numbers blurs every capacity and weight. Tap one to check it.</div>
+
+  <h2 class="notes-section-title">Equipment</h2>
+  <p class="notes-section-sub">Rated capacity, what it looks like, and what it's used for.</p>
+  <div id="eq-content"></div>
+
+  <h2 class="notes-section-title">Sling Loads</h2>
+  <p class="notes-section-sub">Rigging materials, weights, link counts and breakaways for each load.</p>
+  <div id="load-content"></div>
+  <p class="notes-empty" id="notes-empty" hidden>Nothing matches that search.</p>
+ </div>
+</div>
+
+<div class="footer-credit">Put Together by Jimmy</div>
+
+<script>
+/* DATA: Phase 1 and Phase 2 study guide questions and answers.
+   Each card: n = question number, t = true if marked (T), q = question, a = answer. */
+const DATA = {"p1": [{"id": "all", "station": 0, "name": "All Questions", "reg": "ALL", "cards": [{"n": 1, "t": false, "q": "What is the allowable cargo load of the LUH-72A in its normal configuration when used for MEDEVAC operations?", "a": "2 litter, 1 Medic, or 5 ambulatory"}, {"n": 2, "t": true, "q": "What is the primary use for the CH-47 when used during CASEVAC missions? And what is the ACL for normal configuration?", "a": "Mass casualty evacuation, 16 ambulatory and 12 litter"}, {"n": 3, "t": false, "q": "What is the crew of a LUH-72A when not being used for MEDEVAC operations?", "a": "Pilot, co-pilot, and crew chief"}, {"n": 4, "t": false, "q": "What is the total length of the high performance utility hoist?", "a": "256 FT"}, {"n": 5, "t": false, "q": "When used for CASEVAC operations, what is the ACL for the CH-47?", "a": "16 ambulatory and 12 litters"}, {"n": 6, "t": true, "q": "If the obstacle on the approach route is eight meters tall and the obstacle on the departure route is ten meters tall of your PZ/LZ, what is the unusable space for the departure route?", "a": "100 meters"}, {"n": 7, "t": false, "q": "What reference material covers LZ/PZ operations?", "a": "FM 3-21.38 Pathfinder Operations, FM 3-99 Airborne and Air Assault Operations, TM 4-48.09 Sling load Basic Operations and Equipment"}, {"n": 8, "t": true, "q": "What are the dimensions of the landing lights that mark an additional touchdown point for cargo aircraft?", "a": "10M x 10M"}, {"n": 9, "t": false, "q": "What is the first step in HLZ establishment (LZ/PZ Operations)?", "a": "Establish control facilities"}, {"n": 10, "t": false, "q": "Why must your sleeves be rolled down when working around aircraft?", "a": "Protects from flying debris and flash fires"}, {"n": 11, "t": false, "q": "What reference material covers Aircraft Safety?", "a": "FM 3-99"}, {"n": 12, "t": false, "q": "In the acronym DROP, what does the R stand for?", "a": "Reduce unnecessary Gear"}, {"n": 13, "t": true, "q": "What are the three portions of the aircraft that you must avoid at all times?", "a": "Main rotor blades, tail rotor blades and cargo hook"}, {"n": 14, "t": false, "q": "In case of a fire, when should you exit the aircraft?", "a": "Take all commands from the crew, and Exit Immediately"}, {"n": 15, "t": false, "q": "Define an Air Assault Operation.", "a": "The movement of friendly forces by rotary-wing aircraft to engage enemy forces or to seize and hold key terrain"}, {"n": 16, "t": true, "q": "What is a chalk/load defined as?", "a": "Personnel and equipment designated to be moved by specific aircraft"}, {"n": 17, "t": false, "q": "What are the six factors that determine abort criteria?", "a": "Weather, Available aircraft, Time, Mission Essential Combat Power, Mission Criticality, Enemy"}, {"n": 18, "t": true, "q": "What are the components of an Air Route?", "a": "SP (start point), RP (release point), ACP (air control points), Flight Path (4 Flight Routes)"}, {"n": 19, "t": false, "q": "What are the three terrain flight modes?", "a": "Low Level, Contour, NAP of the Earth"}, {"n": 20, "t": false, "q": "What reference material covers Aircraft Orientation?", "a": "FM 3-04"}, {"n": 21, "t": false, "q": "What reference material covers Airborne Operations?", "a": "FM 3-99"}, {"n": 22, "t": true, "q": "What is the maximum speed of the AH-64?", "a": "180 knots"}, {"n": 23, "t": true, "q": "What is the maximum allowable cargo load (ACL) for the MV-22 without seats? And with seats?", "a": "32 pax W/O seats and 24 PAX with seats"}, {"n": 24, "t": false, "q": "What is the proper angle to approach the LUH-72A with engines running?", "a": "45 degrees from the front"}, {"n": 25, "t": true, "q": "What is the crash position of the UH-60?", "a": "UH-60 - Sit upright, muzzle pointed down"}, {"n": 26, "t": false, "q": "How far will you move away from the aircraft after crashing?", "a": "100m"}, {"n": 27, "t": false, "q": "What is the average gallons per hour for the AH-64?", "a": "175 gallons"}, {"n": 28, "t": false, "q": "What reference material covers aircraft safety?", "a": "FM 3-99"}, {"n": 29, "t": false, "q": "What are the four basic AEROMEDEVAC missions/capabilities?", "a": "Delivery of whole blood and biological, Air crash rescue, movement of medical personnel and supplies, evacuation of selected casualties"}, {"n": 30, "t": true, "q": "How many emergency exits are on a CH-47?", "a": "10 or all windows"}, {"n": 31, "t": false, "q": "The UH-60 comes equipped with how many first aid kits?", "a": "3 First Aid Kits"}, {"n": 32, "t": false, "q": "How many fire extinguishers are on the UH-60?", "a": "2"}, {"n": 33, "t": false, "q": "What reference material covers Aeromedical Evacuation?", "a": "ATP 4-02.2"}, {"n": 34, "t": false, "q": "What is the allowable cargo load (ACL) for combat-equipped troops for the CH-46E?", "a": "24"}, {"n": 35, "t": false, "q": "What is the flight time of the AH-64?", "a": "3 hours"}, {"n": 36, "t": false, "q": "What is the cruising speed of the UH-60?", "a": "120-145 knots"}, {"n": 37, "t": true, "q": "What is the maximum speed of the CH-47?", "a": "170 knots"}, {"n": 38, "t": false, "q": "What are the missions of the LUH-72A?", "a": "Homeland security, Medivac, Drug Interdiction, Logistics, General Support"}, {"n": 39, "t": true, "q": "Which flying/landing formation is most secure?", "a": "Diamond most secure and"}, {"n": 40, "t": false, "q": "The inverted Y consists of how many lights and what are they called?", "a": "4 lights, base light, directional light, left and right stem light"}, {"n": 41, "t": true, "q": "When utilizing the NATO T, how many lights are used to mark the touchdown point?", "a": "5"}, {"n": 42, "t": true, "q": "What was the first Army MEDEVAC helicopter?", "a": "OH-13 Sioux, \"Angel of Mercy\""}, {"n": 43, "t": false, "q": "What are the five stages of the reverse planning sequence?", "a": "Ground Tactical Plan, Landing Plan, Air Movement Plan, Loading Plan, Staging Plan"}, {"n": 44, "t": false, "q": "What aircraft is known as the angel of mercy?", "a": "OH-13 Sioux"}, {"n": 45, "t": true, "q": "What three items must be on a Soldier when working in and around rotary-wing aircraft?", "a": "ID card, ID tags, Ear pro"}, {"n": 46, "t": false, "q": "What two categories of factors should you take into consideration when setting up a PZ/LZ?", "a": "Tactical and Technical Considerations"}, {"n": 47, "t": false, "q": "What size TDP is suitable for the MV-22?", "a": "Size 4, 80 Meters"}, {"n": 48, "t": true, "q": "When dealing with obstacles, what are the four R's?", "a": "Remove, Reduce, mark in Red, Radio"}, {"n": 49, "t": true, "q": "The ________ formation is the least secure flying and landing formation.", "a": "Trail formation"}, {"n": 50, "t": false, "q": "The ________ is a wind direction within 45 degrees left or right of a land heading.", "a": "Head wind"}, {"n": 51, "t": true, "q": "The NATO T will be utilized if the A/C is approaching from _____ ft above ground level (AGL) or higher.", "a": "500ft"}, {"n": 52, "t": false, "q": "Whenever atmospheric conditions increase, the A/C performance will be decreased and the ___ will be reduced.", "a": "Allowable cargo load (ACL)"}, {"n": 53, "t": false, "q": "You should never use ______ and ______ chem lights when marking a LZ/PZ. Why?", "a": "Blue or green. Not able to be seen under Night Vision Devices"}, {"n": 54, "t": false, "q": "True or False? You must use the 10:1 obstacle ratio for the left/right sides of your PZ/LZ.", "a": "False"}, {"n": 55, "t": false, "q": "What is a mission of the AH-64?", "a": "Anti-Armor (Primary), Close Air Support (CAS), Air-to-Air Combat"}, {"n": 56, "t": false, "q": "What is the flight time for the CH-47 D/F Chinook?", "a": "2h 30 min; 4h 30 min w/ Extended Range Fuel System (ERFS)"}, {"n": 57, "t": false, "q": "True or False? The primary missions for the UH-60 A/L/M are Air Assault, Air Movement, and Casualty Evacuation.", "a": "True"}, {"n": 58, "t": true, "q": "What is the allowable cargo load for combat-equipped troops for the UH-60 A/L/M with and without seats?", "a": "11 PAX with and 16 PAX without"}, {"n": 59, "t": true, "q": "A __________ is defined as personnel and equipment designated to be moved by a specific aircraft.", "a": "Chalk/Load"}, {"n": 60, "t": false, "q": "Define Command and Control.", "a": "Command is the authority and control is the regulation"}, {"n": 61, "t": true, "q": "In a water landing, when would you exit the aircraft?", "a": "After the rotor blades stop spinning, aircraft stops rolling"}, {"n": 62, "t": false, "q": "What three factors affect the aircraft's capabilities?", "a": "Humidity, Altitude, Temperature"}, {"n": 63, "t": false, "q": "What does ACP stand for in reference to Air Routes?", "a": "Aircraft Control Points"}, {"n": 64, "t": false, "q": "How many emergency exits are on the LUH-72A?", "a": "4"}, {"n": 65, "t": false, "q": "True or False: The AH-64E Apache primary mission is casualty evacuation.", "a": "False"}, {"n": 66, "t": true, "q": "What are three portions of a rotary-wing aircraft that you must avoid at all times?", "a": "Main Rotor Blades, Tail Rotor Blades, Cargo Hook"}, {"n": 67, "t": false, "q": "A _________ is a location where you can maintain communication with the aircraft, have a total overview of the LZ/PZ, and are able to see incoming aircraft.", "a": "Control facilities"}, {"n": 68, "t": false, "q": "What are the five stages of the reverse planning sequence?", "a": "Ground Tactical Plan, Landing Plan, Air Movement Plan, Loading Plan, Staging Plan"}, {"n": 69, "t": false, "q": "Air Routes are commonly marked with ______________.", "a": "Terrain features"}, {"n": 70, "t": true, "q": "What is the proper angle to approach the UH-60?", "a": "90 degrees from the side and away from the tail rotor"}, {"n": 71, "t": false, "q": "True or False? An armed escort is required for the CH-47 during MASCAL.", "a": "True"}, {"n": 72, "t": true, "q": "How many fire extinguishers are on the LUH-72A?", "a": "1"}, {"n": 73, "t": true, "q": "What is the cruising speed of the AH-64D?", "a": "110-120 Knots"}, {"n": 74, "t": false, "q": "What do the \"A\" and the \"D\" in the acronym DAME stand for?", "a": "Air Crash Rescue, and Delivery of whole blood and biological"}, {"n": 75, "t": false, "q": "What are the three phases of PZ/LZ operations?", "a": "Selecting, Marking, Controlling"}, {"n": 76, "t": false, "q": "How many meters is a size 5 touchdown point (TDP)?", "a": "100 Meters"}, {"n": 77, "t": false, "q": "What can you reduce the 10:1 obstacle ratio to?", "a": "5:1 ratio"}, {"n": 78, "t": false, "q": "What is the primary mission of the AH-64D Apache?", "a": "Anti-Armor"}, {"n": 79, "t": false, "q": "What is the max airspeed of a CH-47D/F?", "a": "170 knots"}, {"n": 80, "t": false, "q": "How many ambulatory patients can a CH-47 accept?", "a": "31 PAX"}, {"n": 81, "t": true, "q": "What is the lowest level that can execute an air assault operation?", "a": "Company"}, {"n": 82, "t": false, "q": "To determine the ground slope, you must divide the vertical distance by what?", "a": "Horizontal Distance"}, {"n": 83, "t": true, "q": "What is the distance between the directional light and the base light when using an inverted \"Y\"?", "a": "7 Meters"}, {"n": 84, "t": false, "q": "How many NATO-approved flying and landing formations are there?", "a": "9"}, {"n": 85, "t": false, "q": "What is the distance between the stem light and a directional light when marking a NATO \"T\"?", "a": "10 Meters"}, {"n": 86, "t": true, "q": "True or False: Can C2 aircraft fly in a ROZ?", "a": "True"}, {"n": 87, "t": false, "q": "What do vertical envelopments focus on?", "a": "Seizing and Holding key terrain"}, {"n": 88, "t": false, "q": "What is the max airspeed for a UH-60Q?", "a": "156 Knots"}, {"n": 89, "t": false, "q": "What is the flight time for a HH-60M?", "a": "2 hours and 30 minutes"}, {"n": 90, "t": false, "q": "What do the \"S\" and \"A\" stand for in the acronym SURVIVAL?", "a": "Size up the Situation"}, {"n": 91, "t": true, "q": "How many fire extinguishers are on the UH-60?", "a": "2"}, {"n": 92, "t": true, "q": "How do you approach a CH-47 when loading?", "a": "45 degrees from the rear"}, {"n": 93, "t": false, "q": "What manual covers pathfinder operations?", "a": "FM 3-21.38"}, {"n": 94, "t": true, "q": "What was the first MEDEVAC helicopter?", "a": "OH-13"}, {"n": 95, "t": false, "q": "How many red cross markings are on the HH-60M?", "a": "5"}, {"n": 96, "t": false, "q": "Define a Chalk.", "a": "A chalk is comprised of personnel and equipment designated to be moved by a specific aircraft"}, {"n": 97, "t": true, "q": "Define a Serial.", "a": "A serial is a tactical grouping of two or more aircraft separated from other groups by time and or space"}, {"n": 98, "t": false, "q": "What are the five stages of reverse planning sequences?", "a": "Ground tactical plan, landing plan, air movement plan, loading plan, staging plan"}, {"n": 99, "t": false, "q": "What are the advantages of staggered trail right formation?", "a": "Simple load"}, {"n": 100, "t": true, "q": "What aircraft can land if the ground slope exceeds 15 degrees?", "a": "No aircraft"}, {"n": 101, "t": true, "q": "How many sling load reference lights are required at night if the aircraft is not landing?", "a": "5"}, {"n": 102, "t": false, "q": "What is the distance between the additional A/C landing lights for non-cargo aircraft?", "a": "5 Meters (x) 5 Meters"}, {"n": 103, "t": false, "q": "What is the cargo hook capacity for a LUH-72A?", "a": "3306 lbs. 1,500kg"}, {"n": 104, "t": false, "q": "What is the max speed of an AH-6J?", "a": "152 Knots"}, {"n": 105, "t": false, "q": "What is line 4 of the 9-line?", "a": "Special Equipment Needed"}, {"n": 106, "t": false, "q": "What are the three terrain flight modes?", "a": "Nap of the Earth, Contour, Low-level"}, {"n": 107, "t": false, "q": "What is TDP 5 used for?", "a": "Sling Loads and Unknown Aircraft"}, {"n": 108, "t": false, "q": "How many first aid kits are on the CH-47?", "a": "7"}, {"n": 109, "t": false, "q": "What is the primary use for the SKEDCO rescue system?", "a": "Ground evacuation, sit-down mission, hoist extraction, water rescue"}, {"n": 110, "t": false, "q": "What is the proper angle to approach the UH-60?", "a": "90 Degrees from the side (opposite the tail rotor)"}, {"n": 111, "t": false, "q": "What are the dimensions of the Inverted \"Y\"?", "a": "7 meters (x) 14 meters (x) 14 meters"}, {"n": 112, "t": false, "q": "What do the \"M\" and \"C\" stand for in METT-TC?", "a": "Mission, Civilians"}, {"n": 113, "t": true, "q": "What is the flight time of the MQ-1C Gray Eagle with and without armament?", "a": "Without - 22 hrs, with 11 hrs"}, {"n": 114, "t": false, "q": "What is a Pathfinder's primary mission?", "a": "Trained, equipped pathfinders select, mark, improve, and control landing sites"}, {"n": 115, "t": true, "q": "What two lines in the 9-line change during peacetime operations?", "a": "Line 6 and Line 9"}, {"n": 116, "t": true, "q": "What does the \"A\" stand for in the acronym SURVIVAL?", "a": "Act like natives or Indigenous people"}, {"n": 117, "t": false, "q": "How many flight formations are there? What are they?", "a": "9 - Trail (T), Staggered Trail Right (STR), Staggered Trail Left (STL), Echelon Right (ER), Echelon Left (EL), Heavy Right (HR), Heavy Left (HL), Vee (V), Diamond (D) MOST SECURE"}, {"n": 118, "t": false, "q": "What is the fuel capacity of the large and small fuel pods?", "a": "Large = 450 gallons, Small = 230 gallons"}, {"n": 119, "t": true, "q": "Who approves an obstacle reduction from 10:1 to 5:1 ratio?", "a": "Ground Unit Commander (GUC)"}, {"n": 120, "t": false, "q": "What is the first stage of the reverse planning sequence?", "a": "Ground Tactical Plan"}, {"n": 121, "t": false, "q": "How many red cross markings are on the LUH-72A?", "a": "4"}, {"n": 122, "t": false, "q": "How many exits are on a CH-47?", "a": "10"}, {"n": 123, "t": false, "q": "What are the 4 \"R\" in reference to obstacles?", "a": "Reduce, Remove, Radio, Red"}, {"n": 124, "t": false, "q": "What flying formation has a Ghost spot?", "a": "Heavy left or Heavy right"}, {"n": 125, "t": true, "q": "How many litters does a MV-22 hold?", "a": "12 Litter Casualties"}, {"n": 126, "t": false, "q": "What size TDP would be needed for a HH-60M with a sling load?", "a": "Size 5"}, {"n": 127, "t": true, "q": "What is the max wind speed that an aircraft is allowed to land in for tailwind and crosswind?", "a": "Crosswind that EXCEEDS 9 knots and Tailwind that EXCEEDS 5 knots"}, {"n": 128, "t": false, "q": "What is the distance between aircraft in flight during day and night flights?", "a": "Day: 2 to 3 rotor disks; Night 3 to 5 rotor disks"}, {"n": 129, "t": false, "q": "What is the max speed for the MV-22B?", "a": "240 Knots"}, {"n": 130, "t": true, "q": "What is the max gross weight for the UH-60 L/M?", "a": "22,000 LBS"}]}, {"id": "uh60", "station": 1, "name": "UH-60 Black Hawk", "reg": "UH-60", "cards": [{"n": 31, "t": false, "q": "The UH-60 comes equipped with how many first aid kits?", "a": "3 First Aid Kits"}, {"n": 32, "t": false, "q": "How many fire extinguishers are on the UH-60?", "a": "2"}, {"n": 36, "t": false, "q": "What is the cruising speed of the UH-60?", "a": "120-145 knots"}, {"n": 57, "t": false, "q": "True or False? The primary missions for the UH-60 A/L/M are Air Assault, Air Movement, and Casualty Evacuation.", "a": "True"}, {"n": 58, "t": true, "q": "What is the allowable cargo load for combat-equipped troops for the UH-60 A/L/M with and without seats?", "a": "11 PAX with and 16 PAX without"}, {"n": 70, "t": true, "q": "What is the proper angle to approach the UH-60?", "a": "90 degrees from the side and away from the tail rotor"}, {"n": 88, "t": false, "q": "What is the max airspeed for a UH-60Q?", "a": "156 Knots"}, {"n": 89, "t": false, "q": "What is the flight time for a HH-60M?", "a": "2 hours and 30 minutes"}, {"n": 91, "t": true, "q": "How many fire extinguishers are on the UH-60?", "a": "2"}, {"n": 95, "t": false, "q": "How many red cross markings are on the HH-60M?", "a": "5"}, {"n": 110, "t": false, "q": "What is the proper angle to approach the UH-60?", "a": "90 Degrees from the side (opposite the tail rotor)"}, {"n": 130, "t": true, "q": "What is the max gross weight for the UH-60 L/M?", "a": "22,000 LBS"}]}, {"id": "ch47", "station": 1, "name": "CH-47 Chinook", "reg": "CH-47", "cards": [{"n": 2, "t": true, "q": "What is the primary use for the CH-47 when used during CASEVAC missions? And what is the ACL for normal configuration?", "a": "Mass casualty evacuation, 16 ambulatory and 12 litter"}, {"n": 5, "t": false, "q": "When used for CASEVAC operations, what is the ACL for the CH-47?", "a": "16 ambulatory and 12 litters"}, {"n": 30, "t": true, "q": "How many emergency exits are on a CH-47?", "a": "10 or all windows"}, {"n": 37, "t": true, "q": "What is the maximum speed of the CH-47?", "a": "170 knots"}, {"n": 56, "t": false, "q": "What is the flight time for the CH-47 D/F Chinook?", "a": "2h 30 min; 4h 30 min w/ Extended Range Fuel System (ERFS)"}, {"n": 71, "t": false, "q": "True or False? An armed escort is required for the CH-47 during MASCAL.", "a": "True"}, {"n": 79, "t": false, "q": "What is the max airspeed of a CH-47D/F?", "a": "170 knots"}, {"n": 80, "t": false, "q": "How many ambulatory patients can a CH-47 accept?", "a": "31 PAX"}, {"n": 92, "t": true, "q": "How do you approach a CH-47 when loading?", "a": "45 degrees from the rear"}, {"n": 108, "t": false, "q": "How many first aid kits are on the CH-47?", "a": "7"}, {"n": 122, "t": false, "q": "How many exits are on a CH-47?", "a": "10"}]}, {"id": "luh72", "station": 1, "name": "LUH-72A Lakota", "reg": "LUH-72A", "cards": [{"n": 1, "t": false, "q": "What is the allowable cargo load of the LUH-72A in its normal configuration when used for MEDEVAC operations?", "a": "2 litter, 1 Medic, or 5 ambulatory"}, {"n": 3, "t": false, "q": "What is the crew of a LUH-72A when not being used for MEDEVAC operations?", "a": "Pilot, co-pilot, and crew chief"}, {"n": 24, "t": false, "q": "What is the proper angle to approach the LUH-72A with engines running?", "a": "45 degrees from the front"}, {"n": 38, "t": false, "q": "What are the missions of the LUH-72A?", "a": "Homeland security, Medivac, Drug Interdiction, Logistics, General Support"}, {"n": 64, "t": false, "q": "How many emergency exits are on the LUH-72A?", "a": "4"}, {"n": 72, "t": true, "q": "How many fire extinguishers are on the LUH-72A?", "a": "1"}, {"n": 103, "t": false, "q": "What is the cargo hook capacity for a LUH-72A?", "a": "3306 lbs. 1,500kg"}, {"n": 121, "t": false, "q": "How many red cross markings are on the LUH-72A?", "a": "4"}]}, {"id": "attack", "station": 1, "name": "AH-64 & Attack/Scout Aircraft", "reg": "ATTACK", "cards": [{"n": 22, "t": true, "q": "What is the maximum speed of the AH-64?", "a": "180 knots"}, {"n": 27, "t": false, "q": "What is the average gallons per hour for the AH-64?", "a": "175 gallons"}, {"n": 35, "t": false, "q": "What is the flight time of the AH-64?", "a": "3 hours"}, {"n": 55, "t": false, "q": "What is a mission of the AH-64?", "a": "Anti-Armor (Primary), Close Air Support (CAS), Air-to-Air Combat"}, {"n": 65, "t": false, "q": "True or False: The AH-64E Apache primary mission is casualty evacuation.", "a": "False"}, {"n": 73, "t": true, "q": "What is the cruising speed of the AH-64D?", "a": "110-120 Knots"}, {"n": 78, "t": false, "q": "What is the primary mission of the AH-64D Apache?", "a": "Anti-Armor"}, {"n": 104, "t": false, "q": "What is the max speed of an AH-6J?", "a": "152 Knots"}, {"n": 118, "t": false, "q": "What is the fuel capacity of the large and small fuel pods?", "a": "Large = 450 gallons, Small = 230 gallons"}]}, {"id": "other", "station": 1, "name": "MV-22, CH-46 & UAS", "reg": "OTHER A/C", "cards": [{"n": 23, "t": true, "q": "What is the maximum allowable cargo load (ACL) for the MV-22 without seats? And with seats?", "a": "32 pax W/O seats and 24 PAX with seats"}, {"n": 34, "t": false, "q": "What is the allowable cargo load (ACL) for combat-equipped troops for the CH-46E?", "a": "24"}, {"n": 113, "t": true, "q": "What is the flight time of the MQ-1C Gray Eagle with and without armament?", "a": "Without - 22 hrs, with 11 hrs"}, {"n": 125, "t": true, "q": "How many litters does a MV-22 hold?", "a": "12 Litter Casualties"}, {"n": 129, "t": false, "q": "What is the max speed for the MV-22B?", "a": "240 Knots"}]}, {"id": "medevac", "station": 2, "name": "Aeromedical Evacuation", "reg": "MEDEVAC", "cards": [{"n": 4, "t": false, "q": "What is the total length of the high performance utility hoist?", "a": "256 FT"}, {"n": 29, "t": false, "q": "What are the four basic AEROMEDEVAC missions/capabilities?", "a": "Delivery of whole blood and biological, Air crash rescue, movement of medical personnel and supplies, evacuation of selected casualties"}, {"n": 33, "t": false, "q": "What reference material covers Aeromedical Evacuation?", "a": "ATP 4-02.2"}, {"n": 42, "t": true, "q": "What was the first Army MEDEVAC helicopter?", "a": "OH-13 Sioux, \"Angel of Mercy\""}, {"n": 44, "t": false, "q": "What aircraft is known as the angel of mercy?", "a": "OH-13 Sioux"}, {"n": 74, "t": false, "q": "What do the \"A\" and the \"D\" in the acronym DAME stand for?", "a": "Air Crash Rescue, and Delivery of whole blood and biological"}, {"n": 94, "t": true, "q": "What was the first MEDEVAC helicopter?", "a": "OH-13"}, {"n": 105, "t": false, "q": "What is line 4 of the 9-line?", "a": "Special Equipment Needed"}, {"n": 109, "t": false, "q": "What is the primary use for the SKEDCO rescue system?", "a": "Ground evacuation, sit-down mission, hoist extraction, water rescue"}, {"n": 115, "t": true, "q": "What two lines in the 9-line change during peacetime operations?", "a": "Line 6 and Line 9"}]}, {"id": "safety", "station": 2, "name": "Aircraft Safety & Survival", "reg": "SAFETY", "cards": [{"n": 10, "t": false, "q": "Why must your sleeves be rolled down when working around aircraft?", "a": "Protects from flying debris and flash fires"}, {"n": 11, "t": false, "q": "What reference material covers Aircraft Safety?", "a": "FM 3-99"}, {"n": 12, "t": false, "q": "In the acronym DROP, what does the R stand for?", "a": "Reduce unnecessary Gear"}, {"n": 13, "t": true, "q": "What are the three portions of the aircraft that you must avoid at all times?", "a": "Main rotor blades, tail rotor blades and cargo hook"}, {"n": 14, "t": false, "q": "In case of a fire, when should you exit the aircraft?", "a": "Take all commands from the crew, and Exit Immediately"}, {"n": 25, "t": true, "q": "What is the crash position of the UH-60?", "a": "UH-60 - Sit upright, muzzle pointed down"}, {"n": 26, "t": false, "q": "How far will you move away from the aircraft after crashing?", "a": "100m"}, {"n": 28, "t": false, "q": "What reference material covers aircraft safety?", "a": "FM 3-99"}, {"n": 45, "t": true, "q": "What three items must be on a Soldier when working in and around rotary-wing aircraft?", "a": "ID card, ID tags, Ear pro"}, {"n": 61, "t": true, "q": "In a water landing, when would you exit the aircraft?", "a": "After the rotor blades stop spinning, aircraft stops rolling"}, {"n": 66, "t": true, "q": "What are three portions of a rotary-wing aircraft that you must avoid at all times?", "a": "Main Rotor Blades, Tail Rotor Blades, Cargo Hook"}, {"n": 90, "t": false, "q": "What do the \"S\" and \"A\" stand for in the acronym SURVIVAL?", "a": "Size up the Situation"}, {"n": 116, "t": true, "q": "What does the \"A\" stand for in the acronym SURVIVAL?", "a": "Act like natives or Indigenous people"}]}, {"id": "pzlz", "station": 3, "name": "PZ/LZ Operations", "reg": "PZ/LZ", "cards": [{"n": 6, "t": true, "q": "If the obstacle on the approach route is eight meters tall and the obstacle on the departure route is ten meters tall of your PZ/LZ, what is the unusable space for the departure route?", "a": "100 meters"}, {"n": 7, "t": false, "q": "What reference material covers LZ/PZ operations?", "a": "FM 3-21.38 Pathfinder Operations, FM 3-99 Airborne and Air Assault Operations, TM 4-48.09 Sling load Basic Operations and Equipment"}, {"n": 9, "t": false, "q": "What is the first step in HLZ establishment (LZ/PZ Operations)?", "a": "Establish control facilities"}, {"n": 46, "t": false, "q": "What two categories of factors should you take into consideration when setting up a PZ/LZ?", "a": "Tactical and Technical Considerations"}, {"n": 48, "t": true, "q": "When dealing with obstacles, what are the four R's?", "a": "Remove, Reduce, mark in Red, Radio"}, {"n": 50, "t": false, "q": "The ________ is a wind direction within 45 degrees left or right of a land heading.", "a": "Head wind"}, {"n": 52, "t": false, "q": "Whenever atmospheric conditions increase, the A/C performance will be decreased and the ___ will be reduced.", "a": "Allowable cargo load (ACL)"}, {"n": 54, "t": false, "q": "True or False? You must use the 10:1 obstacle ratio for the left/right sides of your PZ/LZ.", "a": "False"}, {"n": 62, "t": false, "q": "What three factors affect the aircraft's capabilities?", "a": "Humidity, Altitude, Temperature"}, {"n": 67, "t": false, "q": "A _________ is a location where you can maintain communication with the aircraft, have a total overview of the LZ/PZ, and are able to see incoming aircraft.", "a": "Control facilities"}, {"n": 75, "t": false, "q": "What are the three phases of PZ/LZ operations?", "a": "Selecting, Marking, Controlling"}, {"n": 77, "t": false, "q": "What can you reduce the 10:1 obstacle ratio to?", "a": "5:1 ratio"}, {"n": 82, "t": false, "q": "To determine the ground slope, you must divide the vertical distance by what?", "a": "Horizontal Distance"}, {"n": 93, "t": false, "q": "What manual covers pathfinder operations?", "a": "FM 3-21.38"}, {"n": 100, "t": true, "q": "What aircraft can land if the ground slope exceeds 15 degrees?", "a": "No aircraft"}, {"n": 114, "t": false, "q": "What is a Pathfinder's primary mission?", "a": "Trained, equipped pathfinders select, mark, improve, and control landing sites"}, {"n": 119, "t": true, "q": "Who approves an obstacle reduction from 10:1 to 5:1 ratio?", "a": "Ground Unit Commander (GUC)"}, {"n": 123, "t": false, "q": "What are the 4 \"R\" in reference to obstacles?", "a": "Reduce, Remove, Radio, Red"}, {"n": 127, "t": true, "q": "What is the max wind speed that an aircraft is allowed to land in for tailwind and crosswind?", "a": "Crosswind that EXCEEDS 9 knots and Tailwind that EXCEEDS 5 knots"}]}, {"id": "marking", "station": 3, "name": "LZ Marking & Touchdown Points", "reg": "MARKING", "cards": [{"n": 8, "t": true, "q": "What are the dimensions of the landing lights that mark an additional touchdown point for cargo aircraft?", "a": "10M x 10M"}, {"n": 40, "t": false, "q": "The inverted Y consists of how many lights and what are they called?", "a": "4 lights, base light, directional light, left and right stem light"}, {"n": 41, "t": true, "q": "When utilizing the NATO T, how many lights are used to mark the touchdown point?", "a": "5"}, {"n": 47, "t": false, "q": "What size TDP is suitable for the MV-22?", "a": "Size 4, 80 Meters"}, {"n": 51, "t": true, "q": "The NATO T will be utilized if the A/C is approaching from _____ ft above ground level (AGL) or higher.", "a": "500ft"}, {"n": 53, "t": false, "q": "You should never use ______ and ______ chem lights when marking a LZ/PZ. Why?", "a": "Blue or green. Not able to be seen under Night Vision Devices"}, {"n": 76, "t": false, "q": "How many meters is a size 5 touchdown point (TDP)?", "a": "100 Meters"}, {"n": 83, "t": true, "q": "What is the distance between the directional light and the base light when using an inverted \"Y\"?", "a": "7 Meters"}, {"n": 85, "t": false, "q": "What is the distance between the stem light and a directional light when marking a NATO \"T\"?", "a": "10 Meters"}, {"n": 101, "t": true, "q": "How many sling load reference lights are required at night if the aircraft is not landing?", "a": "5"}, {"n": 102, "t": false, "q": "What is the distance between the additional A/C landing lights for non-cargo aircraft?", "a": "5 Meters (x) 5 Meters"}, {"n": 107, "t": false, "q": "What is TDP 5 used for?", "a": "Sling Loads and Unknown Aircraft"}, {"n": 111, "t": false, "q": "What are the dimensions of the Inverted \"Y\"?", "a": "7 meters (x) 14 meters (x) 14 meters"}, {"n": 126, "t": false, "q": "What size TDP would be needed for a HH-60M with a sling load?", "a": "Size 5"}]}, {"id": "planning", "station": 4, "name": "Air Assault Planning", "reg": "PLANNING", "cards": [{"n": 15, "t": false, "q": "Define an Air Assault Operation.", "a": "The movement of friendly forces by rotary-wing aircraft to engage enemy forces or to seize and hold key terrain"}, {"n": 16, "t": true, "q": "What is a chalk/load defined as?", "a": "Personnel and equipment designated to be moved by specific aircraft"}, {"n": 17, "t": false, "q": "What are the six factors that determine abort criteria?", "a": "Weather, Available aircraft, Time, Mission Essential Combat Power, Mission Criticality, Enemy"}, {"n": 20, "t": false, "q": "What reference material covers Aircraft Orientation?", "a": "FM 3-04"}, {"n": 21, "t": false, "q": "What reference material covers Airborne Operations?", "a": "FM 3-99"}, {"n": 43, "t": false, "q": "What are the five stages of the reverse planning sequence?", "a": "Ground Tactical Plan, Landing Plan, Air Movement Plan, Loading Plan, Staging Plan"}, {"n": 59, "t": true, "q": "A __________ is defined as personnel and equipment designated to be moved by a specific aircraft.", "a": "Chalk/Load"}, {"n": 60, "t": false, "q": "Define Command and Control.", "a": "Command is the authority and control is the regulation"}, {"n": 68, "t": false, "q": "What are the five stages of the reverse planning sequence?", "a": "Ground Tactical Plan, Landing Plan, Air Movement Plan, Loading Plan, Staging Plan"}, {"n": 81, "t": true, "q": "What is the lowest level that can execute an air assault operation?", "a": "Company"}, {"n": 87, "t": false, "q": "What do vertical envelopments focus on?", "a": "Seizing and Holding key terrain"}, {"n": 96, "t": false, "q": "Define a Chalk.", "a": "A chalk is comprised of personnel and equipment designated to be moved by a specific aircraft"}, {"n": 97, "t": true, "q": "Define a Serial.", "a": "A serial is a tactical grouping of two or more aircraft separated from other groups by time and or space"}, {"n": 98, "t": false, "q": "What are the five stages of reverse planning sequences?", "a": "Ground tactical plan, landing plan, air movement plan, loading plan, staging plan"}, {"n": 112, "t": false, "q": "What do the \"M\" and \"C\" stand for in METT-TC?", "a": "Mission, Civilians"}, {"n": 120, "t": false, "q": "What is the first stage of the reverse planning sequence?", "a": "Ground Tactical Plan"}]}, {"id": "routes", "station": 4, "name": "Air Routes & Formations", "reg": "ROUTES", "cards": [{"n": 18, "t": true, "q": "What are the components of an Air Route?", "a": "SP (start point), RP (release point), ACP (air control points), Flight Path (4 Flight Routes)"}, {"n": 19, "t": false, "q": "What are the three terrain flight modes?", "a": "Low Level, Contour, NAP of the Earth"}, {"n": 39, "t": true, "q": "Which flying/landing formation is most secure?", "a": "Diamond most secure and"}, {"n": 49, "t": true, "q": "The ________ formation is the least secure flying and landing formation.", "a": "Trail formation"}, {"n": 63, "t": false, "q": "What does ACP stand for in reference to Air Routes?", "a": "Aircraft Control Points"}, {"n": 69, "t": false, "q": "Air Routes are commonly marked with ______________.", "a": "Terrain features"}, {"n": 84, "t": false, "q": "How many NATO-approved flying and landing formations are there?", "a": "9"}, {"n": 86, "t": true, "q": "True or False: Can C2 aircraft fly in a ROZ?", "a": "True"}, {"n": 99, "t": false, "q": "What are the advantages of staggered trail right formation?", "a": "Simple load"}, {"n": 106, "t": false, "q": "What are the three terrain flight modes?", "a": "Nap of the Earth, Contour, Low-level"}, {"n": 117, "t": false, "q": "How many flight formations are there? What are they?", "a": "9 - Trail (T), Staggered Trail Right (STR), Staggered Trail Left (STL), Echelon Right (ER), Echelon Left (EL), Heavy Right (HR), Heavy Left (HL), Vee (V), Diamond (D) MOST SECURE"}, {"n": 124, "t": false, "q": "What flying formation has a Ghost spot?", "a": "Heavy left or Heavy right"}, {"n": 128, "t": false, "q": "What is the distance between aircraft in flight during day and night flights?", "a": "Day: 2 to 3 rotor disks; Night 3 to 5 rotor disks"}]}], "p2": [{"id": "all", "station": 0, "name": "All Questions", "reg": "ALL", "cards": [{"n": 1, "t": false, "q": "What is the minimum weight for any sling load to fly?", "a": "500 lbs"}, {"n": 2, "t": true, "q": "What is the hook capacity of the UH-60L/M?", "a": "9,000 lbs"}, {"n": 3, "t": false, "q": "The lacing cord is what type of material on the A-22 cargo bag?", "a": "Type III nylon, 3/8th inch rope, 7/16th inch nylon rope"}, {"n": 4, "t": false, "q": "What are the factors of in-flight stability?", "a": "Reduce sling length (never less than 6 feet), streamline the load, add weight to the load, reduce airspeed of the aircraft but never less than 60 knots"}, {"n": 5, "t": true, "q": "What reference material covers single-point rigging procedures?", "a": "TM 4-48.10"}, {"n": 6, "t": false, "q": "What is the rank requirement for a qualified sling load inspector?", "a": "SPC or above"}, {"n": 7, "t": false, "q": "What is the diameter of the 10K apex pin?", "a": "1 1/8 in"}, {"n": 8, "t": false, "q": "What are the three units involved in a sling load operation?", "a": "Supported unit, Aviation unit, Receiving unit"}, {"n": 9, "t": true, "q": "What is the primary lift point on the 500-gallon fuel blivet?", "a": "5/8 inch screw pin clevis"}, {"n": 10, "t": true, "q": "How often should you inspect sling load equipment?", "a": "Before and after each use, and/or every six months"}, {"n": 11, "t": true, "q": "What is the least preferred method of improving in-flight stability?", "a": "Reducing airspeed"}, {"n": 12, "t": false, "q": "What are the phases of a sling load operation?", "a": "Preparation and rigging, inspection of the preparation and rigging, and the sling load operation itself"}, {"n": 13, "t": false, "q": "What is the rated capacity of the green and black bottom loop cargo hook reach pendant?", "a": "11,000 lbs"}, {"n": 14, "t": true, "q": "What is the minimum weight of a single fuel blivet?", "a": "500 lbs"}, {"n": 15, "t": true, "q": "What is the rated capacity of a single 25K sling leg?", "a": "6,250 lbs"}, {"n": 16, "t": false, "q": "What is the hook capacity of the fore or aft cargo hooks individually on the CH-47?", "a": "17,000 lbs"}, {"n": 17, "t": true, "q": "What is the weight of a complete 10K sling set?", "a": "52 lbs"}, {"n": 18, "t": false, "q": "What is the weight of a complete 25K sling set?", "a": "114 lbs"}, {"n": 19, "t": false, "q": "What is the link count for the cargo net?", "a": "3 (10K) or 5 (25K)"}, {"n": 20, "t": true, "q": "Where can you find DA Form 7382?", "a": "TM 4-48.09 Appendix I (India)"}, {"n": 21, "t": false, "q": "When a link count is 10 or more, how will excess links be secured?", "a": "Excess will be tied with Type III nylon or 2-inch tape"}, {"n": 22, "t": false, "q": "What is the rated capacity of the black load binder?", "a": "10,000 lbs"}, {"n": 23, "t": false, "q": "What is the total size of the 10K cargo net?", "a": "18 ft x 18 ft"}, {"n": 24, "t": false, "q": "What is the link count for a single fuel blivet?", "a": "3"}, {"n": 25, "t": true, "q": "What is the maximum weight of the A-22 cargo bag?", "a": "2,200 lbs"}, {"n": 26, "t": false, "q": "What is the rated capacity of ¼-inch cotton webbing?", "a": "80 lbs"}, {"n": 27, "t": false, "q": "What is the rated capacity of the small screw pin clevis?", "a": "8,650 lbs"}, {"n": 28, "t": true, "q": "What classification of sling load has flown for years without incident?", "a": "Suitable"}, {"n": 29, "t": false, "q": "What unit is responsible for selecting, preparing, and controlling the PZ?", "a": "Supported unit"}, {"n": 30, "t": false, "q": "What reference material covers dual-point rigging procedures?", "a": "TM 4-48.11"}, {"n": 31, "t": false, "q": "A qualified sling load inspector must be in the grade of E-4 or above and a graduate of which school?", "a": "Pathfinder, Air Assault, or Sling Load Inspection Certification Course (SLICC)"}, {"n": 32, "t": false, "q": "What reference material covers basic operations and equipment?", "a": "TM 4-48.09"}, {"n": 33, "t": false, "q": "What is the link count for the M1151 up-armored HMMWV?", "a": "30 front / 3 rear"}, {"n": 34, "t": false, "q": "What is the diameter for the pin portion of the 25K apex?", "a": "1 1/2 in"}, {"n": 35, "t": true, "q": "How many links are on a 25K lifting chain?", "a": "84–88 links"}, {"n": 36, "t": false, "q": "How is the proper drag surface achieved?", "a": "Proper link count"}, {"n": 37, "t": false, "q": "What is the rated capacity of the medium suspension clevis?", "a": "6,250 lbs"}, {"n": 38, "t": false, "q": "What is the total size of the 5K cargo net?", "a": "15 ft x 15 ft"}, {"n": 39, "t": false, "q": "What is the load-bearing zone size of the 10K cargo net?", "a": "6 ft x 6 ft"}, {"n": 40, "t": false, "q": "What is the proper uniform for ground crew members conducting sling load operations?", "a": "Helmet, goggles, ear plugs, gloves, sleeves rolled down, ID card, ID tags"}, {"n": 41, "t": false, "q": "What is the hook capacity of the UH-60A?", "a": "8,000 lbs"}, {"n": 42, "t": true, "q": "What is the hook sequence for the cargo net?", "a": "1, 3, 2, 4 or 1, 3, 4, 2"}, {"n": 43, "t": true, "q": "What is the rated capacity of 7/16-inch nylon rope?", "a": "4,500 lbs"}, {"n": 44, "t": true, "q": "How much of the load must be inside the load-bearing zone?", "a": "75%"}, {"n": 45, "t": false, "q": "What unit is responsible for providing assistance in the recovery and return of all sling load equipment?", "a": "Aviation unit"}, {"n": 46, "t": false, "q": "What is the rated capacity of the CGU-1B?", "a": "5,000 lbs"}, {"n": 47, "t": false, "q": "What is the rated capacity of the large clevis?", "a": "12,500 lbs"}, {"n": 48, "t": true, "q": "How many breakaways are required on the M149A2 water trailer?", "a": "1 cluster breakaway"}, {"n": 49, "t": false, "q": "What can be used as breakaway material?", "a": "One wrap of 1/4 in cotton webbing or one wrap 2-inch pressure-sensitive tape"}, {"n": 50, "t": false, "q": "What is the rated capacity of the center cargo hook of the CH-47?", "a": "26,000 lbs"}, {"n": 51, "t": false, "q": "What is the minimum weight of the M1151 up-armored HMMWV?", "a": "10,300 lbs"}, {"n": 52, "t": false, "q": "What is the rated capacity of the Type IV connector link?", "a": "12,500 lbs"}, {"n": 53, "t": false, "q": "What is the link count for the M149A2 water trailer?", "a": "75 front / 90 rear"}, {"n": 54, "t": true, "q": "What is the rated capacity of Type III nylon?", "a": "550 lbs"}, {"n": 55, "t": false, "q": "What is the rated capacity of the 25K apex?", "a": "25,000 lbs"}, {"n": 56, "t": true, "q": "What is the empty weight of a single fuel blivet?", "a": "275 lbs"}, {"n": 57, "t": false, "q": "Which cargo net is 15 ft by 15 ft?", "a": "5K cargo net"}, {"n": 58, "t": false, "q": "What is the rated capacity of ½-inch tubular nylon?", "a": "1,000 lbs"}, {"n": 59, "t": false, "q": "What is the rated capacity of the net apex fitting?", "a": "10,000 lbs"}, {"n": 60, "t": false, "q": "What is the rated capacity of a complete 10K sling set?", "a": "10,000 lbs"}, {"n": 61, "t": true, "q": "How many links are on a 10K lifting chain?", "a": "110–115 links"}, {"n": 62, "t": false, "q": "What is the rated capacity of the 10K apex?", "a": "10,000 lbs"}, {"n": 63, "t": false, "q": "What is the rated capacity of the black looped cargo hook reach pendant?", "a": "25,000 lbs"}, {"n": 64, "t": true, "q": "What is the rated capacity of 2-inch tape?", "a": "80 lbs per wrap"}, {"n": 65, "t": false, "q": "What is the rated capacity of the silver load binder?", "a": "5,000 lbs"}, {"n": 66, "t": true, "q": "What is the mesh size on the black cargo net?", "a": "7.5 inch x 7.5 inch"}, {"n": 67, "t": false, "q": "What are the components of the Type IV connector link?", "a": "Base plate, 2 aluminum rollers, and 1 locking plate"}, {"n": 68, "t": false, "q": "What is the rated capacity for the aerial delivery sling?", "a": "10,000 lbs"}, {"n": 69, "t": false, "q": "What is the maximum weight of four 500-gallon fuel blivets?", "a": "16,800 lbs"}, {"n": 70, "t": false, "q": "What manual covers basic operations and equipment?", "a": "TM 4-48.09"}, {"n": 71, "t": false, "q": "Which cargo hook on the CH-47 cannot be released manually?", "a": "Center"}, {"n": 72, "t": true, "q": "What is the maximum weight for the M1102 high mobility trailer?", "a": "4,200 lbs"}, {"n": 73, "t": false, "q": "What direction is the M149A2 water trailer flown?", "a": "Rearward"}, {"n": 74, "t": true, "q": "What is the link count of the M1102 high mobility trailer?", "a": "Front: 20; Rear: 3 (10K) or Front: 17; Rear: 5 (25K)"}, {"n": 75, "t": false, "q": "What will render the aerial delivery sling unserviceable?", "a": "Three or more loose or broken stitches in a row or five or more in a general area"}, {"n": 76, "t": false, "q": "What would you use to clean the metal portions of any sling set?", "a": "Wire brush or emery cloth"}, {"n": 77, "t": false, "q": "How would a CH-47 carry three single points of attachment loads that all have different weights?", "a": "Heaviest in the middle, next lower in weight in rear, and lightest in the front"}, {"n": 78, "t": false, "q": "Who is the approving authority for a unique load to fly?", "a": "High-risk approving authority (O-6 or higher)"}, {"n": 79, "t": false, "q": "What is the rated capacity of the platform clevis?", "a": "7,000 lbs"}, {"n": 80, "t": false, "q": "What equipment is used to secure equipment in the back of vehicles and trailers?", "a": "15 ft tie-down strap with load binders, CGU-1/B"}, {"n": 81, "t": false, "q": "What is the ACL of the M1151?", "a": "1,800 lbs"}, {"n": 82, "t": false, "q": "What is the rated capacity of the 3/8-inch hemp rope?", "a": "3,180 lbs"}, {"n": 83, "t": true, "q": "Where can the damage criteria chart for sling legs be found?", "a": "TM 4-48.09 Chapter 6"}, {"n": 84, "t": false, "q": "What material is the rope portion on sling legs?", "a": "Double-braided nylon"}, {"n": 85, "t": false, "q": "What does AMB stand for?", "a": "Air Mission Brief"}, {"n": 86, "t": false, "q": "Where can you find how to make a field-expedient static discharge wand?", "a": "TM 4-48.09 Appendix D"}, {"n": 87, "t": false, "q": "How should the grounding rod be placed into the ground?", "a": "6 to 12 inches deep at a 45-degree angle facing away from the load"}, {"n": 88, "t": true, "q": "Where do the three copies of DA Form 7382 go?", "a": "One copy to the aviation unit, one copy to the supported unit, and one copy tied or taped on the load"}, {"n": 89, "t": false, "q": "When an inspection of the Aerial Delivery Sling is conducted, a serviceable sling will have a 1-inch stencil of the month and year in what color or colors?", "a": "Black or blue ink"}, {"n": 90, "t": true, "q": "What does the “U” in CUPS mean?", "a": "Unique"}, {"n": 91, "t": true, "q": "Who can approve unique loads?", "a": "High risk approving authority"}, {"n": 92, "t": true, "q": "What is the max weight of 3 fuel blivets?", "a": "12,600 lbs"}, {"n": 93, "t": true, "q": "What is the empty weight of the ISV?", "a": "4,840 lbs"}, {"n": 94, "t": true, "q": "What is the empty weight of the trailer?", "a": "M1101 = 1,460 lbs, M1102 = 1,460 lbs"}]}, {"id": "refs", "station": 1, "name": "References & Manuals", "reg": "REFS", "cards": [{"n": 5, "t": true, "q": "What reference material covers single-point rigging procedures?", "a": "TM 4-48.10"}, {"n": 20, "t": true, "q": "Where can you find DA Form 7382?", "a": "TM 4-48.09 Appendix I (India)"}, {"n": 30, "t": false, "q": "What reference material covers dual-point rigging procedures?", "a": "TM 4-48.11"}, {"n": 32, "t": false, "q": "What reference material covers basic operations and equipment?", "a": "TM 4-48.09"}, {"n": 70, "t": false, "q": "What manual covers basic operations and equipment?", "a": "TM 4-48.09"}, {"n": 83, "t": true, "q": "Where can the damage criteria chart for sling legs be found?", "a": "TM 4-48.09 Chapter 6"}, {"n": 86, "t": false, "q": "Where can you find how to make a field-expedient static discharge wand?", "a": "TM 4-48.09 Appendix D"}]}, {"id": "ops", "station": 1, "name": "Units, Phases & Approvals", "reg": "OPS", "cards": [{"n": 6, "t": false, "q": "What is the rank requirement for a qualified sling load inspector?", "a": "SPC or above"}, {"n": 8, "t": false, "q": "What are the three units involved in a sling load operation?", "a": "Supported unit, Aviation unit, Receiving unit"}, {"n": 12, "t": false, "q": "What are the phases of a sling load operation?", "a": "Preparation and rigging, inspection of the preparation and rigging, and the sling load operation itself"}, {"n": 28, "t": true, "q": "What classification of sling load has flown for years without incident?", "a": "Suitable"}, {"n": 29, "t": false, "q": "What unit is responsible for selecting, preparing, and controlling the PZ?", "a": "Supported unit"}, {"n": 31, "t": false, "q": "A qualified sling load inspector must be in the grade of E-4 or above and a graduate of which school?", "a": "Pathfinder, Air Assault, or Sling Load Inspection Certification Course (SLICC)"}, {"n": 40, "t": false, "q": "What is the proper uniform for ground crew members conducting sling load operations?", "a": "Helmet, goggles, ear plugs, gloves, sleeves rolled down, ID card, ID tags"}, {"n": 45, "t": false, "q": "What unit is responsible for providing assistance in the recovery and return of all sling load equipment?", "a": "Aviation unit"}, {"n": 78, "t": false, "q": "Who is the approving authority for a unique load to fly?", "a": "High-risk approving authority (O-6 or higher)"}, {"n": 85, "t": false, "q": "What does AMB stand for?", "a": "Air Mission Brief"}, {"n": 87, "t": false, "q": "How should the grounding rod be placed into the ground?", "a": "6 to 12 inches deep at a 45-degree angle facing away from the load"}, {"n": 88, "t": true, "q": "Where do the three copies of DA Form 7382 go?", "a": "One copy to the aviation unit, one copy to the supported unit, and one copy tied or taped on the load"}, {"n": 90, "t": true, "q": "What does the “U” in CUPS mean?", "a": "Unique"}, {"n": 91, "t": true, "q": "Who can approve unique loads?", "a": "High risk approving authority"}]}, {"id": "hooks", "station": 2, "name": "Aircraft Cargo Hooks", "reg": "HOOKS", "cards": [{"n": 2, "t": true, "q": "What is the hook capacity of the UH-60L/M?", "a": "9,000 lbs"}, {"n": 13, "t": false, "q": "What is the rated capacity of the green and black bottom loop cargo hook reach pendant?", "a": "11,000 lbs"}, {"n": 16, "t": false, "q": "What is the hook capacity of the fore or aft cargo hooks individually on the CH-47?", "a": "17,000 lbs"}, {"n": 41, "t": false, "q": "What is the hook capacity of the UH-60A?", "a": "8,000 lbs"}, {"n": 50, "t": false, "q": "What is the rated capacity of the center cargo hook of the CH-47?", "a": "26,000 lbs"}, {"n": 63, "t": false, "q": "What is the rated capacity of the black looped cargo hook reach pendant?", "a": "25,000 lbs"}, {"n": 71, "t": false, "q": "Which cargo hook on the CH-47 cannot be released manually?", "a": "Center"}, {"n": 77, "t": false, "q": "How would a CH-47 carry three single points of attachment loads that all have different weights?", "a": "Heaviest in the middle, next lower in weight in rear, and lightest in the front"}]}, {"id": "stability", "station": 2, "name": "In-Flight Stability", "reg": "STABILITY", "cards": [{"n": 1, "t": false, "q": "What is the minimum weight for any sling load to fly?", "a": "500 lbs"}, {"n": 4, "t": false, "q": "What are the factors of in-flight stability?", "a": "Reduce sling length (never less than 6 feet), streamline the load, add weight to the load, reduce airspeed of the aircraft but never less than 60 knots"}, {"n": 11, "t": true, "q": "What is the least preferred method of improving in-flight stability?", "a": "Reducing airspeed"}, {"n": 36, "t": false, "q": "How is the proper drag surface achieved?", "a": "Proper link count"}, {"n": 73, "t": false, "q": "What direction is the M149A2 water trailer flown?", "a": "Rearward"}]}, {"id": "slings", "station": 3, "name": "10K & 25K Sling Sets", "reg": "SLING SETS", "cards": [{"n": 7, "t": false, "q": "What is the diameter of the 10K apex pin?", "a": "1 1/8 in"}, {"n": 15, "t": true, "q": "What is the rated capacity of a single 25K sling leg?", "a": "6,250 lbs"}, {"n": 17, "t": true, "q": "What is the weight of a complete 10K sling set?", "a": "52 lbs"}, {"n": 18, "t": false, "q": "What is the weight of a complete 25K sling set?", "a": "114 lbs"}, {"n": 34, "t": false, "q": "What is the diameter for the pin portion of the 25K apex?", "a": "1 1/2 in"}, {"n": 35, "t": true, "q": "How many links are on a 25K lifting chain?", "a": "84–88 links"}, {"n": 55, "t": false, "q": "What is the rated capacity of the 25K apex?", "a": "25,000 lbs"}, {"n": 60, "t": false, "q": "What is the rated capacity of a complete 10K sling set?", "a": "10,000 lbs"}, {"n": 61, "t": true, "q": "How many links are on a 10K lifting chain?", "a": "110–115 links"}, {"n": 62, "t": false, "q": "What is the rated capacity of the 10K apex?", "a": "10,000 lbs"}, {"n": 84, "t": false, "q": "What material is the rope portion on sling legs?", "a": "Double-braided nylon"}]}, {"id": "clevis", "station": 3, "name": "Clevises & Connector Links", "reg": "HARDWARE", "cards": [{"n": 27, "t": false, "q": "What is the rated capacity of the small screw pin clevis?", "a": "8,650 lbs"}, {"n": 37, "t": false, "q": "What is the rated capacity of the medium suspension clevis?", "a": "6,250 lbs"}, {"n": 47, "t": false, "q": "What is the rated capacity of the large clevis?", "a": "12,500 lbs"}, {"n": 52, "t": false, "q": "What is the rated capacity of the Type IV connector link?", "a": "12,500 lbs"}, {"n": 67, "t": false, "q": "What are the components of the Type IV connector link?", "a": "Base plate, 2 aluminum rollers, and 1 locking plate"}, {"n": 79, "t": false, "q": "What is the rated capacity of the platform clevis?", "a": "7,000 lbs"}]}, {"id": "nets", "station": 3, "name": "Cargo Nets", "reg": "NETS", "cards": [{"n": 19, "t": false, "q": "What is the link count for the cargo net?", "a": "3 (10K) or 5 (25K)"}, {"n": 23, "t": false, "q": "What is the total size of the 10K cargo net?", "a": "18 ft x 18 ft"}, {"n": 38, "t": false, "q": "What is the total size of the 5K cargo net?", "a": "15 ft x 15 ft"}, {"n": 39, "t": false, "q": "What is the load-bearing zone size of the 10K cargo net?", "a": "6 ft x 6 ft"}, {"n": 42, "t": true, "q": "What is the hook sequence for the cargo net?", "a": "1, 3, 2, 4 or 1, 3, 4, 2"}, {"n": 44, "t": true, "q": "How much of the load must be inside the load-bearing zone?", "a": "75%"}, {"n": 57, "t": false, "q": "Which cargo net is 15 ft by 15 ft?", "a": "5K cargo net"}, {"n": 59, "t": false, "q": "What is the rated capacity of the net apex fitting?", "a": "10,000 lbs"}, {"n": 66, "t": true, "q": "What is the mesh size on the black cargo net?", "a": "7.5 inch x 7.5 inch"}]}, {"id": "tiedown", "station": 3, "name": "Tie-Downs, Rope & Breakaways", "reg": "MATERIALS", "cards": [{"n": 21, "t": false, "q": "When a link count is 10 or more, how will excess links be secured?", "a": "Excess will be tied with Type III nylon or 2-inch tape"}, {"n": 22, "t": false, "q": "What is the rated capacity of the black load binder?", "a": "10,000 lbs"}, {"n": 26, "t": false, "q": "What is the rated capacity of ¼-inch cotton webbing?", "a": "80 lbs"}, {"n": 43, "t": true, "q": "What is the rated capacity of 7/16-inch nylon rope?", "a": "4,500 lbs"}, {"n": 46, "t": false, "q": "What is the rated capacity of the CGU-1B?", "a": "5,000 lbs"}, {"n": 49, "t": false, "q": "What can be used as breakaway material?", "a": "One wrap of 1/4 in cotton webbing or one wrap 2-inch pressure-sensitive tape"}, {"n": 54, "t": true, "q": "What is the rated capacity of Type III nylon?", "a": "550 lbs"}, {"n": 58, "t": false, "q": "What is the rated capacity of ½-inch tubular nylon?", "a": "1,000 lbs"}, {"n": 64, "t": true, "q": "What is the rated capacity of 2-inch tape?", "a": "80 lbs per wrap"}, {"n": 65, "t": false, "q": "What is the rated capacity of the silver load binder?", "a": "5,000 lbs"}, {"n": 80, "t": false, "q": "What equipment is used to secure equipment in the back of vehicles and trailers?", "a": "15 ft tie-down strap with load binders, CGU-1/B"}, {"n": 82, "t": false, "q": "What is the rated capacity of the 3/8-inch hemp rope?", "a": "3,180 lbs"}]}, {"id": "ads", "station": 3, "name": "Aerial Delivery Sling & Care", "reg": "ADS / MAINT", "cards": [{"n": 10, "t": true, "q": "How often should you inspect sling load equipment?", "a": "Before and after each use, and/or every six months"}, {"n": 68, "t": false, "q": "What is the rated capacity for the aerial delivery sling?", "a": "10,000 lbs"}, {"n": 75, "t": false, "q": "What will render the aerial delivery sling unserviceable?", "a": "Three or more loose or broken stitches in a row or five or more in a general area"}, {"n": 76, "t": false, "q": "What would you use to clean the metal portions of any sling set?", "a": "Wire brush or emery cloth"}, {"n": 89, "t": false, "q": "When an inspection of the Aerial Delivery Sling is conducted, a serviceable sling will have a 1-inch stencil of the month and year in what color or colors?", "a": "Black or blue ink"}]}, {"id": "blivet", "station": 4, "name": "Fuel Blivets & A-22 Bag", "reg": "BLIVET / A-22", "cards": [{"n": 3, "t": false, "q": "The lacing cord is what type of material on the A-22 cargo bag?", "a": "Type III nylon, 3/8th inch rope, 7/16th inch nylon rope"}, {"n": 9, "t": true, "q": "What is the primary lift point on the 500-gallon fuel blivet?", "a": "5/8 inch screw pin clevis"}, {"n": 14, "t": true, "q": "What is the minimum weight of a single fuel blivet?", "a": "500 lbs"}, {"n": 24, "t": false, "q": "What is the link count for a single fuel blivet?", "a": "3"}, {"n": 25, "t": true, "q": "What is the maximum weight of the A-22 cargo bag?", "a": "2,200 lbs"}, {"n": 56, "t": true, "q": "What is the empty weight of a single fuel blivet?", "a": "275 lbs"}, {"n": 69, "t": false, "q": "What is the maximum weight of four 500-gallon fuel blivets?", "a": "16,800 lbs"}, {"n": 92, "t": true, "q": "What is the max weight of 3 fuel blivets?", "a": "12,600 lbs"}]}, {"id": "vehicles", "station": 4, "name": "Vehicles & Trailers", "reg": "VEHICLES", "cards": [{"n": 33, "t": false, "q": "What is the link count for the M1151 up-armored HMMWV?", "a": "30 front / 3 rear"}, {"n": 48, "t": true, "q": "How many breakaways are required on the M149A2 water trailer?", "a": "1 cluster breakaway"}, {"n": 51, "t": false, "q": "What is the minimum weight of the M1151 up-armored HMMWV?", "a": "10,300 lbs"}, {"n": 53, "t": false, "q": "What is the link count for the M149A2 water trailer?", "a": "75 front / 90 rear"}, {"n": 72, "t": true, "q": "What is the maximum weight for the M1102 high mobility trailer?", "a": "4,200 lbs"}, {"n": 74, "t": true, "q": "What is the link count of the M1102 high mobility trailer?", "a": "Front: 20; Rear: 3 (10K) or Front: 17; Rear: 5 (25K)"}, {"n": 81, "t": false, "q": "What is the ACL of the M1151?", "a": "1,800 lbs"}, {"n": 93, "t": true, "q": "What is the empty weight of the ISV?", "a": "4,840 lbs"}, {"n": 94, "t": true, "q": "What is the empty weight of the trailer?", "a": "M1101 = 1,460 lbs, M1102 = 1,460 lbs"}]}]};
+
+const PHASES = {
+  p1: {
+    label: 'Phase 1', title: 'Air Assault Phase 1 — Flashcards', tag: 'PHASE 1 · COMBAT ASSAULT',
+    topics: DATA.p1,
+    stations: { 0: "All Cards", 1: "Aircraft", 2: "Medical & Safety", 3: "PZ / LZ Operations", 4: "Planning & Movement" }
+  },
+  p2: {
+    label: 'Phase 2', title: 'Air Assault Phase 2 — Sling Load Flashcards', tag: 'PHASE 2 · SLING LOAD',
+    topics: DATA.p2,
+    stations: { 0: "All Cards", 1: "Operations & References", 2: "Aircraft & Flight", 3: "Sling Load Equipment", 4: "Loads" }
+  }
+};
+
+/* Each phase keeps its own scores and weak areas */
+const phaseState = {};
+for (const k in PHASES) phaseState[k] = { scores: { correct: 0, wrong: 0, skip: 0 }, topicScores: {} };
+
+let phaseKey = 'p1', TOPICS = PHASES.p1.topics;
+let currentTopic = null, currentCards = [], currentIndex = 0, revealed = false;
+let scores = phaseState.p1.scores, topicScores = phaseState.p1.topicScores;
+
+function buildTopicGrid() {
+  const grid = document.getElementById('topic-grid');
+  grid.innerHTML = '';
+  const names = PHASES[phaseKey].stations;
+  let lastStation = null;
+  TOPICS.slice().sort((a, b) => a.station - b.station).forEach(t => {
+    if (t.station !== lastStation) {
+      const lbl = document.createElement('div');
+      lbl.className = 'station-group-label';
+      lbl.style.gridColumn = '1 / -1';
+      lbl.textContent = names[t.station];
+      grid.appendChild(lbl);
+      lastStation = t.station;
+    }
+    const btn = document.createElement('button');
+    btn.className = 'topic-btn'; btn.id = 'topic-' + t.id;
+    btn.innerHTML = '<span class="reg-tag">' + t.reg + '</span>' + t.name + '<span class="count-tag">' + t.cards.length + '</span>';
+    btn.onclick = () => selectTopic(t.id);
+    grid.appendChild(btn);
+  });
+}
+function selectTopic(id) {
+  currentTopic = TOPICS.find(t => t.id === id);
+  currentCards = shuffle(currentTopic.cards.slice());
+  currentIndex = 0; revealed = false;
+  document.querySelectorAll('.topic-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('topic-' + id).classList.add('active');
+  document.getElementById('current-topic-tag').textContent = currentTopic.reg + ' — ' + currentTopic.name.toUpperCase();
+  if (!topicScores[id]) topicScores[id] = { correct: 0, wrong: 0 };
+  loadCard();
+  scrollToCard();
+}
+function shuffle(arr) {
+  for (let i = arr.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [arr[i], arr[j]] = [arr[j], arr[i]]; }
+  return arr;
+}
+function loadCard() {
+  if (!currentTopic || currentCards.length === 0) return;
+  const card = currentCards[currentIndex % currentCards.length];
+  revealed = false;
+  document.getElementById('main-card').className = 'card';
+  document.getElementById('card-topic').textContent = currentTopic.reg + ' — ' + currentTopic.name + '  ·  Q' + card.n + (card.t ? ' (T)' : '');
+  document.getElementById('card-q').textContent = card.q;
+  document.getElementById('card-a').textContent = card.a;
+  document.getElementById('card-a').classList.remove('show');
+  document.getElementById('reveal-btn').disabled = false;
+  document.getElementById('skip-btn').disabled = false;
+  document.getElementById('reveal-row').style.display = 'flex';
+  document.getElementById('judge-row').style.display = 'none';
+  document.getElementById('next-row').style.display = 'none';
+  document.getElementById('deck-label').textContent = 'Answer out loud, then reveal';
+  const total = currentCards.length;
+  document.getElementById('progress-bar').style.width = ((currentIndex % total) / total) * 100 + '%';
+}
+function clearCard() {
+  currentTopic = null; currentCards = []; currentIndex = 0; revealed = false;
+  document.getElementById('main-card').className = 'card';
+  document.getElementById('card-topic').textContent = '— SELECT A TOPIC ABOVE —';
+  document.getElementById('card-q').textContent = 'Choose a topic from the list above to begin.';
+  document.getElementById('card-a').textContent = '';
+  document.getElementById('card-a').classList.remove('show');
+  document.getElementById('reveal-btn').disabled = true;
+  document.getElementById('skip-btn').disabled = true;
+  document.getElementById('reveal-row').style.display = 'flex';
+  document.getElementById('judge-row').style.display = 'none';
+  document.getElementById('next-row').style.display = 'none';
+  document.getElementById('deck-label').textContent = 'Answer out loud, then reveal';
+  document.getElementById('progress-bar').style.width = '0%';
+  document.getElementById('current-topic-tag').textContent = '— SELECT TOPIC —';
+}
+function revealAnswer() {
+  revealed = true;
+  document.getElementById('card-a').classList.add('show');
+  document.getElementById('main-card').classList.add('revealed');
+  document.getElementById('reveal-row').style.display = 'none';
+  document.getElementById('judge-row').style.display = 'flex';
+  document.getElementById('next-row').style.display = 'flex';
+  document.getElementById('deck-label').textContent = 'Score yourself honestly';
+}
+function markCard(result) {
+  const card = document.getElementById('main-card');
+  if (result === 'correct') { scores.correct++; card.classList.remove('revealed'); card.classList.add('correct-card'); if (currentTopic) topicScores[currentTopic.id].correct++; }
+  else { scores.wrong++; card.classList.remove('revealed'); card.classList.add('wrong-card'); if (currentTopic) topicScores[currentTopic.id].wrong++; }
+  updateScores(); updateWeakTopics();
+  document.getElementById('judge-row').style.display = 'none';
+  document.getElementById('deck-label').textContent = result === 'correct' ? 'Marked correct' : 'Marked missed — this topic goes in weak areas';
+}
+function scrollToCard() {
+  const target = document.querySelector('.card-container');
+  const bar = document.querySelector('.topbar');
+  if (!target) return;
+  target.style.scrollMarginTop = ((bar ? bar.offsetHeight : 100) + 14) + 'px';
+  target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+function skipCard() { scores.skip++; updateScores(); nextCard(); }
+function nextCard() {
+  currentIndex++;
+  if (currentIndex >= currentCards.length) { currentCards = shuffle(currentTopic.cards.slice()); currentIndex = 0; }
+  loadCard();
+}
+function updateScores() {
+  document.getElementById('score-correct').textContent = scores.correct;
+  document.getElementById('score-wrong').textContent = scores.wrong;
+  document.getElementById('score-skip').textContent = scores.skip;
+}
+function resetScores() {
+  phaseState[phaseKey] = { scores: { correct: 0, wrong: 0, skip: 0 }, topicScores: {} };
+  scores = phaseState[phaseKey].scores; topicScores = phaseState[phaseKey].topicScores;
+  updateScores(); updateWeakTopics();
+  if (currentTopic) selectTopic(currentTopic.id);
+}
+document.getElementById('reset-btn').onclick = resetScores;
+function updateWeakTopics() {
+  const weak = [];
+  for (const id in topicScores) {
+    const s = topicScores[id]; const total = s.correct + s.wrong;
+    if (total >= 3 && s.wrong / total > 0.4) {
+      const topic = TOPICS.find(t => t.id === id);
+      weak.push(topic.name + ' (' + s.wrong + 'W / ' + s.correct + 'C)');
+    }
+  }
+  const section = document.getElementById('weak-section');
+  const list = document.getElementById('weak-list');
+  if (weak.length > 0) { section.style.display = 'block'; list.innerHTML = weak.join('<br>'); }
+  else { section.style.display = 'none'; }
+}
+
+/* ---------- Hamburger menu + phase switching ---------- */
+const drawer = document.getElementById('nav-drawer');
+const burger = document.getElementById('hamburger');
+
+function setDrawer(open) {
+  drawer.classList.toggle('open', open);
+  burger.classList.toggle('open', open);
+  burger.setAttribute('aria-expanded', open ? 'true' : 'false');
+  burger.setAttribute('aria-label', open ? 'Close menu' : 'Open menu');
+}
+burger.onclick = () => setDrawer(!drawer.classList.contains('open'));
+
+/* ---------- Equipment Quick Notes (transcribed from the handwritten notes) ----------
+   Equipment: name, cap (capacity lines), desc, use, key (highlighted notes), flag (checks against the answer key) */
+const EQUIPMENT = [
+  { group: "Sling Sets & Apex Hardware", items: [
+    { name: "10K Sling Set", cap: ["10,000 lbs", "2,500 lbs per leg"],
+      desc: "12' double-braid nylon rope, 7/8\" diameter (green → yellow). Chain + grab hook assembly, 8' (110–115 links). Aluminum apex fitting, 1 1/8\" pin. Set weight is 52 lbs.",
+      use: "Sling loads up to 10K",
+      key: ["UH-60 must have spacer", "CH-47 spacer optional"] },
+    { name: "25K Sling Set", cap: ["25,000 lbs", "6,250 lbs per leg"],
+      desc: "12' double-braid nylon rope, 1 1/4\" diameter (black → gray). Chain + grab hook assembly, 8' (84–88 links). Gold steel apex fitting, 1 1/2\" pin. Set weight is 114 lbs.",
+      use: "Sling loads up to 25K",
+      key: ["UH-60 can NOT have spacer", "CH-47 spacer optional"] },
+    { name: "Aerial Delivery Sling (ADS)", cap: ["10,000 lbs"],
+      desc: "3' ADS uses Type IV connector link to make 3' apex ring",
+      use: "Multi-loop large apex" },
+    { name: "Type IV Connector Link", cap: ["12,500 lbs"],
+      desc: "Base plate, 2 aluminum rollers, locking plate",
+      use: "Connects ADS sling to ring" },
+    { name: "Net Apex Fitting", cap: ["10,000 lbs"],
+      use: "5K + 10K cargo nets connect to grab hook assembly" },
+  ]},
+  { group: "Clevises", items: [
+    { name: "Large Clevis", cap: ["12,500 lbs"], use: "Field-expedient apex" },
+    { name: "Medium Clevis", cap: ["6,250 lbs"], use: "A-22 cargo bag hooks" },
+    { name: "Small Clevis", cap: ["6,250 lbs"], use: "Lift point" },
+    { name: "5/8\" Screw Pin Clevis", cap: ["4,420 lbs"], use: "Lift point on fuel blivet" },
+    { name: "Small Screw Pin Clevis", cap: ["8,650 lbs"], use: "Tie-down or lift point" },
+    { name: "Platform Clevis", cap: ["7,000 lbs"], use: "Air Force pallets" },
+  ]},
+  { group: "Tie-Down & Breakaway Materials", items: [
+    { name: "2\" Pressure-Sensitive Tape", cap: ["80 lbs per wrap"],
+      desc: "2\" tape, any Army color",
+      use: "Shatterproof, pad, secure (2 wraps) or breakaway (1 wrap)" },
+    { name: "Type III Nylon", cap: ["550 lbs"],
+      desc: "White or green, round, smooth",
+      use: "Permanent tie and secure" },
+    { name: "1/4\" Cotton Webbing", cap: ["80 lbs"],
+      desc: "Flat, rough, typically white",
+      use: "Breakaway to prevent tangles",
+      key: ["Multi-wrap = permanent"] },
+    { name: "3/8\" Hemp Rope", cap: ["3,180 lbs"],
+      desc: "3/8\" rope",
+      use: "Used to secure instead of 7/16\" nylon rope" },
+    { name: "7/16\" Nylon Rope", cap: ["4,500 lbs"],
+      desc: "Nylon rope",
+      use: "Cargo net collar, secure, rappel, hip rappel seats" },
+    { name: "1/2\" Tubular Nylon", cap: ["1,000 lbs"],
+      desc: "Rope",
+      use: "Secures equipment and excess",
+      key: ["Links on M119 howitzer"] },
+    { name: "CGU-1/B", cap: ["5,000 lbs"],
+      desc: "Ratchet strap",
+      use: "Secure items together or in vehicle/trailer" },
+    { name: "Load Binder", cap: ["5,000 lbs (silver)", "10,000 lbs (black)"] },
+  ]},
+  { group: "Hookup Safety", items: [
+    { name: "Static Discharge Wand", cap: ["N/A"],
+      desc: "Rubber",
+      use: "Protects hookup man from electric shock",
+      key: ["TM 4-48.09 App. D = field-expedient static wand"] },
+    { name: "Cargo Hook Reach Pendant (CHRP)", cap: ["11,000 lbs", "25,000 lbs"],
+      desc: "Green + small = 11K, black + big = 25K. Rubber loops (small end to aircraft).",
+      use: "Increases safety (no static discharge person) and speed",
+      key: ["Used with any load / aircraft"] },
+  ]},
+];
+
+/* Loads: empty, max, lc, ba are arrays of lines */
+const LOADS = [
+  { group: "Cargo Nets & Bags", items: [
+    { name: "5K Cargo Net",
+      mat: "Sling set (1–4 legs), net, PS 2\" tape, 1/4\" CW, 12' rope: 550 lbs (7/16\" nylon rope, 3/8\" hemp rope or A7A strap)",
+      empty: ["58 lbs"], max: ["5,000 lbs"], lc: ["3 (10K)", "5 (25K)"], ba: ["3"],
+      other: ["Green", "15' × 15' (5' × 5' load zone)", "6\" × 6\" mesh", "4 pax in 5 min rig"],
+      key: ["75% of cargo in load zone", "Hook sequence: 1, 3 must be first"] },
+    { name: "10K Cargo Net",
+      mat: "Same as 5K cargo net",
+      empty: ["96 lbs"], max: ["10,000 lbs"], lc: ["3 (10K)", "5 (25K)"], ba: ["3"],
+      other: ["Black", "18' × 18' (6' × 6' load zone)", "7 1/2\" × 7 1/2\" mesh", "4 pax in 5 min rig"],
+      key: ["Same rules as 5K cargo net"] },
+    { name: "A-22 Cargo Bag",
+      mat: "Sling set (1 leg), A-22 bag, PS 2\" tape, Type III nylon",
+      empty: ["58 lbs"], max: ["2,200 lbs"], lc: ["3 (10K)", "5 (25K)"], ba: ["0"],
+      other: ["Cover is optional", "24\" suspension webs = 550 lbs each (× 4 = 2,200 lbs)", "2 pax in 15 min rig"],
+      key: ["3-5 stitch rule"] },
+    { name: "Fuel Drum / Triple Fuel Blivet",
+      mat: "Sling set (1–2 drums: 10K or 25K; 3–4 drums: 25K), PS 2\" tape, 1/4\" CW, Type III nylon",
+      empty: ["275 lbs"], max: ["1 = 4,200 lbs", "2 = 8,400 lbs", "3 = 12,600 lbs", "4 = 16,800 lbs"], lc: ["3 F", "55 R"], ba: ["1"],
+      other: ["500 gal capacity", "6 blivets fly empty", "2 pax in 5–15 min rig"] },
+  ]},
+  { group: "Vehicles & Trailers", items: [
+    { name: "M1151 HMMWV",
+      mat: "25K sling set, PS 2\" tape, Type III nylon, 1/4\" cotton webbing",
+      empty: ["10,300 lbs"], max: ["12,100 lbs", "ACL: 1,800 lbs"], lc: ["30 F", "3 R"], ba: ["2 F", "2 R"],
+      other: ["75% fuel"],
+      key: ["CH-47 only", "25K sling set only"] },
+    { name: "M1301 ISV (single point)",
+      mat: "25K or 10K sling set, PS 2\" tape, Type III nylon, 1/4\" CW, CGU-1/B tie-downs (as needed)",
+      empty: ["4,840 lbs"], max: ["8,200 lbs", "ACL: 3,360 lbs"], lc: ["3 F", "40 R", "50 R (10K)"], ba: ["1"],
+      other: ["75% fuel", "2 pax in 20 min rig"],
+      key: ["Dual point = 2, 12\" apart, plus 1 apex added", "Dual point LC: 65 IR, 40 OR, 20 IF, 10 OF"] },
+    { name: "M149A2 Water Trailer",
+      mat: "10K sling set, PS 2\" tape, Type III nylon, 1/4\" CW",
+      empty: ["2,800 lbs"], max: ["6,320 lbs"], lc: ["75 F", "90 R"], ba: ["1"],
+      other: ["Not certified due to load → suitable only", "2 pax in 10 min rig"],
+      key: ["Flies backwards"] },
+    { name: "M1102 Light Tactical Trailer",
+      mat: "10K sling set, PS 2\" tape, Type III nylon, 1/4\" CW, CGU-1/B",
+      empty: ["1,460 lbs"], max: ["4,200 lbs", "ACL: 2,740 lbs"], lc: ["20 F, 3 R (10K)", "17 F, 5 R (25K)"], ba: ["1"],
+      other: ["Can be single or dual point", "2 pax in 10 min rig"] },
+  ]},
+  { group: "Howitzers", items: [
+    { name: "M119A2 105mm Howitzer",
+      mat: "Sling set, PS 2\" tape, Type III nylon, 1/4\" CW, 1/2\" nylon cord, padding, CGU-1/B, chain link clamp",
+      empty: ["4,400 lbs"], max: ["7,400 lbs", "ACL: 3,000 lbs"], lc: ["50 R, 55 L, 35 CL (10K)", "40 R, 45 L, 28 CL (25K)"], ba: ["1"],
+      other: ["Must use 25K set if accompanying load", "2 pax in 30 min rig"] },
+    { name: "M777 155mm Howitzer",
+      mat: "25K sling set, additional chain × 4, additional coupling link × 4, PS 2\" tape, Type III nylon, 1/4\" CW",
+      empty: ["M777: 9,300 lbs", "M777A1: 9,800 lbs", "M777A2: 9,920 lbs"], max: ["No extra load"], lc: ["70 F", "3 R"], ba: ["1"],
+      other: ["Travels in firing position", "2 pax in 20 min rig"] },
+  ]},
+];
+
+function esc(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
+function numLines(arr) { return arr.map(v => '<span class="num">' + esc(v) + '</span>').join('<br>'); }
+function notesExtras(it) {
+  let h = '';
+  (it.key || []).forEach(k => { h += '<div class="key-note">' + esc(k) + '</div>'; });
+  if (it.flag) h += '<div class="flag-note">' + esc(it.flag) + '</div>';
+  return h;
+}
+function buildNotes() {
+  document.getElementById('eq-content').innerHTML = EQUIPMENT.map(g =>
+    '<div class="notes-group"><div class="station-group-label">' + esc(g.group) + '</div><div class="eq-list">' +
+    g.items.map(it =>
+      '<div class="eq-item">' +
+        '<div class="eq-name">' + esc(it.name) + '</div>' +
+        '<div class="eq-cap">' + numLines(it.cap) + '</div>' +
+        (it.desc ? '<div class="eq-line"><span class="lbl">Description</span>' + (it.html ? it.desc : esc(it.desc)) + '</div>' : '') +
+        (it.use ? '<div class="eq-line"><span class="lbl">Use</span>' + esc(it.use) + '</div>' : '') +
+        notesExtras(it) +
+      '</div>').join('') +
+    '</div></div>').join('');
+  document.getElementById('load-content').innerHTML = LOADS.map(g =>
+    '<div class="notes-group"><div class="station-group-label">' + esc(g.group) + '</div><div class="eq-list">' +
+    g.items.map(it =>
+      '<div class="eq-item">' +
+        '<div class="eq-name">' + esc(it.name) + '</div><div></div>' +
+        '<div class="load-stats">' +
+          '<div class="stat"><span class="stat-lbl">Empty wt</span><span class="stat-val">' + numLines(it.empty) + '</span></div>' +
+          '<div class="stat"><span class="stat-lbl">Max wt</span><span class="stat-val">' + numLines(it.max) + '</span></div>' +
+          '<div class="stat"><span class="stat-lbl">LC</span><span class="stat-val">' + numLines(it.lc) + '</span></div>' +
+          '<div class="stat"><span class="stat-lbl">BA</span><span class="stat-val">' + numLines(it.ba) + '</span></div>' +
+        '</div>' +
+        '<div class="eq-line"><span class="lbl">Materials</span>' + esc(it.mat) + '</div>' +
+        '<div class="eq-line"><span class="lbl">Other</span>' + it.other.map(esc).join(' · ') + '</div>' +
+        notesExtras(it) +
+      '</div>').join('') +
+    '</div></div>').join('');
+}
+function filterNotes() {
+  const q = document.getElementById('notes-search').value.trim().toLowerCase();
+  let shown = 0;
+  document.querySelectorAll('#view-notes .notes-group').forEach(g => {
+    let any = false;
+    g.querySelectorAll('.eq-item').forEach(it => {
+      const hit = !q || it.textContent.toLowerCase().includes(q);
+      it.hidden = !hit; if (hit) { any = true; shown++; }
+    });
+    g.hidden = !any;
+  });
+  document.getElementById('notes-empty').hidden = shown > 0;
+}
+document.getElementById('notes-search').addEventListener('input', filterNotes);
+document.getElementById('hide-toggle').onclick = function () {
+  const v = document.getElementById('view-notes');
+  const on = !v.classList.contains('hide-nums');
+  v.classList.toggle('hide-nums', on);
+  v.querySelectorAll('.num.peek').forEach(n => n.classList.remove('peek'));
+  this.setAttribute('aria-pressed', on ? 'true' : 'false');
+  this.textContent = on ? 'SHOW NUMBERS' : 'HIDE NUMBERS';
+};
+document.getElementById('view-notes').addEventListener('click', e => {
+  const n = e.target.closest('.num');
+  if (n && document.getElementById('view-notes').classList.contains('hide-nums')) n.classList.toggle('peek');
+});
+buildNotes();
+
+function showView(isNotes) {
+  document.getElementById('view-cards').classList.toggle('active', !isNotes);
+  document.getElementById('view-notes').classList.toggle('active', isNotes);
+  document.getElementById('score-bar').style.display = isNotes ? 'none' : 'flex';
+}
+
+function switchPhase(key) {
+  if (key === 'notes') {
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.toggle('active', n.dataset.phase === 'notes'));
+    document.getElementById('page-title').textContent = 'Air Assault — Equipment Quick Notes';
+    document.getElementById('current-view-tag').textContent = 'EQUIPMENT · SLING LOADS';
+    document.title = 'Air Assault Equipment Quick Notes';
+    showView(true);
+    try { localStorage.setItem('aa-phase', key); } catch (e) {}
+    setDrawer(false);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    return;
+  }
+  showView(false);
+  if (!PHASES[key]) key = 'p1';
+  const samePhase = key === phaseKey && document.getElementById('topic-grid').children.length > 0;
+  phaseKey = key;
+  const p = PHASES[key];
+  TOPICS = p.topics;
+  scores = phaseState[key].scores; topicScores = phaseState[key].topicScores;
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.toggle('active', n.dataset.phase === key));
+  document.getElementById('page-title').textContent = p.title;
+  document.getElementById('current-view-tag').textContent = p.tag;
+  document.title = 'Air Assault ' + p.label + ' Flashcards';
+  if (!samePhase) { buildTopicGrid(); clearCard(); }
+  updateScores(); updateWeakTopics();
+  try { localStorage.setItem('aa-phase', key); } catch (e) {}
+  setDrawer(false);
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+document.querySelectorAll('.nav-item').forEach(n => n.onclick = () => switchPhase(n.dataset.phase));
+
+/* Close the drawer on Escape or on a tap outside it */
+document.addEventListener('keydown', e => { if (e.key === 'Escape') setDrawer(false); });
+document.addEventListener('click', e => {
+  if (drawer.classList.contains('open') && !drawer.contains(e.target) && !burger.contains(e.target)) setDrawer(false);
+});
+
+/* Question counts in the menu */
+for (const k in PHASES) {
+  const all = PHASES[k].topics.find(t => t.id === 'all');
+  const sub = document.getElementById('nav-sub-' + k);
+  if (all && sub) sub.textContent += ' · ' + all.cards.length + ' questions';
+}
+
+/* ---------- Init: reopen the last phase used ---------- */
+let startPhase = 'p1';
+try { startPhase = localStorage.getItem('aa-phase') || 'p1'; } catch (e) {}
+switchPhase(startPhase);
+</script>
+</body>
+</html>
